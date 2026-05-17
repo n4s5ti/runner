@@ -1,0 +1,97 @@
+name: research-searxng-ollama
+
+on:
+  workflow_dispatch:
+    inputs:
+      query:
+        description: Research query
+        required: true
+        type: string
+      destination_url:
+        description: HTTPS endpoint that receives result JSON
+        required: true
+        type: string
+      model:
+        description: Ollama model
+        required: false
+        default: llama3.2:3b
+        type: string
+      temperature:
+        description: Ollama temperature, 0.0 through 2.0
+        required: false
+        default: "0.2"
+        type: string
+      top_n:
+        description: Number of SearXNG results to include, 1 through 10
+        required: false
+        default: "5"
+        type: string
+  repository_dispatch:
+    types: [searxng-research-request]
+
+permissions:
+  contents: read
+
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    services:
+      searxng:
+        image: searxng/searxng:latest
+        ports:
+          - 8080:8080
+        volumes:
+          - ${{ github.workspace }}/config/searxng/settings.yml:/etc/searxng/settings.yml:ro
+    env:
+      QUERY: ${{ github.event_name == 'repository_dispatch' && github.event.client_payload.query || inputs.query }}
+      DESTINATION_URL: ${{ github.event_name == 'repository_dispatch' && github.event.client_payload.destination_url || inputs.destination_url }}
+      MODEL: ${{ github.event_name == 'repository_dispatch' && github.event.client_payload.model || inputs.model || 'llama3.2:3b' }}
+      TEMPERATURE: ${{ github.event_name == 'repository_dispatch' && github.event.client_payload.temperature || inputs.temperature || '0.2' }}
+      TOP_N: ${{ github.event_name == 'repository_dispatch' && github.event.client_payload.top_n || inputs.top_n || '5' }}
+      SEARXNG_URL: http://127.0.0.1:8080
+      RESULT_PATH: result.json
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Wait for SearXNG
+        run: |
+          python - <<'PY'
+          import time
+          from urllib.request import urlopen
+          for attempt in range(60):
+              try:
+                  with urlopen('http://127.0.0.1:8080/', timeout=2) as response:
+                      if response.status < 500:
+                          print('SearXNG is reachable')
+                          raise SystemExit(0)
+              except Exception:
+                  time.sleep(2)
+          raise SystemExit('SearXNG did not become reachable')
+          PY
+
+      - name: Set up Ollama
+        uses: ai-action/setup-ollama@v2
+
+      - name: Pull model
+        run: ollama pull "$MODEL"
+
+      - name: Run research
+        run: |
+          python scripts/searxng_ollama_research.py \
+            --query "$QUERY" \
+            --destination-url "$DESTINATION_URL" \
+            --model "$MODEL" \
+            --temperature "$TEMPERATURE" \
+            --searxng-url "$SEARXNG_URL" \
+            --top-n "$TOP_N" \
+            --output "$RESULT_PATH"
+
+      - name: Post result
+        run: curl -fsS -o /dev/null -H 'Content-Type: application/json' --data-binary "@$RESULT_PATH" "$DESTINATION_URL"

@@ -1,0 +1,65 @@
+name: research-ollama
+
+on:
+  workflow_dispatch:
+    inputs:
+      query:
+        description: Research query
+        required: true
+        type: string
+      destination_url:
+        description: HTTPS endpoint that receives result JSON
+        required: true
+        type: string
+      model:
+        description: Ollama model
+        required: false
+        default: llama3.2:3b
+        type: string
+      temperature:
+        description: Ollama temperature, 0.0 through 2.0
+        required: false
+        default: "0.2"
+        type: string
+  repository_dispatch:
+    types: [research-request]
+
+permissions:
+  contents: read
+
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      QUERY: ${{ github.event_name == 'repository_dispatch' && github.event.client_payload.query || inputs.query }}
+      DESTINATION_URL: ${{ github.event_name == 'repository_dispatch' && github.event.client_payload.destination_url || inputs.destination_url }}
+      MODEL: ${{ github.event_name == 'repository_dispatch' && github.event.client_payload.model || inputs.model || 'llama3.2:3b' }}
+      TEMPERATURE: ${{ github.event_name == 'repository_dispatch' && github.event.client_payload.temperature || inputs.temperature || '0.2' }}
+      RESULT_PATH: result.json
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Set up Ollama
+        uses: ai-action/setup-ollama@v2
+
+      - name: Pull model
+        run: ollama pull "$MODEL"
+
+      - name: Run research
+        run: |
+          python scripts/research_runner.py \
+            --query "$QUERY" \
+            --destination-url "$DESTINATION_URL" \
+            --model "$MODEL" \
+            --temperature "$TEMPERATURE" \
+            --output "$RESULT_PATH"
+
+      - name: Post result
+        run: curl -fsS -o /dev/null -H 'Content-Type: application/json' --data-binary "@$RESULT_PATH" "$DESTINATION_URL"
