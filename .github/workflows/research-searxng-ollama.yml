@@ -100,6 +100,10 @@ jobs:
             --searxng-url http://127.0.0.1:8080 \
             --output result.json
 
+      - name: Remove SearXNG container
+        if: always()
+        run: docker rm --force "${{ job.services.searxng.id }}"
+
       - name: Post result
         run: |
           python source/scripts/post_result.py \
