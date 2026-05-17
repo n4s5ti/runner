@@ -42,7 +42,7 @@ jobs:
         ports:
           - 8080:8080
         volumes:
-          - ${{ github.workspace }}/config/searxng/settings.yml:/etc/searxng/settings.yml:ro
+          - ${{ github.workspace }}/searxng-config:/etc/searxng
     env:
       QUERY: ${{ github.event_name == 'repository_dispatch' && github.event.client_payload.query || inputs.query }}
       DESTINATION_URL: ${{ github.event_name == 'repository_dispatch' && github.event.client_payload.destination_url || inputs.destination_url }}
@@ -54,6 +54,15 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          path: source
+
+      - name: Install SearXNG settings
+        run: |
+          sudo mkdir -p "$GITHUB_WORKSPACE/searxng-config"
+          sudo cp "$GITHUB_WORKSPACE/source/config/searxng/settings.yml" "$GITHUB_WORKSPACE/searxng-config/settings.yml"
+          sudo chmod 0644 "$GITHUB_WORKSPACE/searxng-config/settings.yml"
+          docker restart "${{ job.services.searxng.id }}"
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -84,7 +93,7 @@ jobs:
 
       - name: Run research
         run: |
-          python scripts/searxng_ollama_research.py \
+          python source/scripts/searxng_ollama_research.py \
             --query "$QUERY" \
             --destination-url "$DESTINATION_URL" \
             --model "$MODEL" \
