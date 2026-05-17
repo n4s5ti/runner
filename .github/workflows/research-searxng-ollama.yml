@@ -1,6 +1,6 @@
 name: research-searxng-ollama
 
-on:
+"on":
   workflow_dispatch:
     inputs:
       query:
