@@ -62,4 +62,5 @@ jobs:
             --output "$RESULT_PATH"
 
       - name: Post result
-        run: curl -fsS -o /dev/null -H 'Content-Type: application/json' --data-binary "@$RESULT_PATH" "$DESTINATION_URL"
+        run: |
+          curl -fsS -o /dev/null -H 'Content-Type: application/json' --data-binary "@$RESULT_PATH" "$DESTINATION_URL"
