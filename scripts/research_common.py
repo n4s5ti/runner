@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
@@ -82,6 +83,34 @@ def write_json(path: str | Path, payload: dict[str, Any]) -> None:
         handle.write("\n")
 
 
+def load_github_request(event_path: str | Path, event_name: str | None = None) -> dict[str, Any]:
+    with Path(event_path).open("r", encoding="utf-8") as handle:
+        event = json.load(handle)
+
+    name = event_name or os.environ.get("GITHUB_EVENT_NAME") or ""
+    if name == "repository_dispatch" or "client_payload" in event:
+        payload = event.get("client_payload", {})
+    else:
+        payload = event.get("inputs", {})
+    if not isinstance(payload, dict):
+        raise ValidationError("GitHub event payload must be an object")
+    return payload
+
+
+def resolve_request_values(args: argparse.Namespace) -> dict[str, Any]:
+    values: dict[str, Any] = {}
+    event_path = getattr(args, "github_event_path", None)
+    if event_path:
+        values.update(load_github_request(event_path, getattr(args, "event_name", None)))
+
+    for key in ("query", "destination_url", "model", "temperature", "top_n"):
+        if hasattr(args, key):
+            value = getattr(args, key)
+            if value not in (None, ""):
+                values[key] = value
+    return values
+
+
 def run_ollama(
     *,
     prompt: str,
@@ -119,17 +148,20 @@ def run_ollama(
 
 
 def add_common_arguments(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument("--query", required=True)
-    parser.add_argument("--destination-url", required=True)
-    parser.add_argument("--model", default=DEFAULT_MODEL)
-    parser.add_argument("--temperature", default=str(DEFAULT_TEMPERATURE))
+    parser.add_argument("--query")
+    parser.add_argument("--destination-url", dest="destination_url")
+    parser.add_argument("--github-event-path")
+    parser.add_argument("--event-name", default=os.environ.get("GITHUB_EVENT_NAME", ""))
+    parser.add_argument("--model")
+    parser.add_argument("--temperature")
     parser.add_argument("--output", default="result.json")
     parser.add_argument("--ollama-executable", default="ollama")
 
 
 def validate_common_args(args: argparse.Namespace) -> tuple[str, str, str, float]:
-    query = require_non_empty(args.query, "query")
-    destination_url = validate_destination_url(args.destination_url)
-    model = require_non_empty(args.model, "model")
-    temperature = parse_temperature(args.temperature)
+    values = resolve_request_values(args)
+    query = require_non_empty(values.get("query"), "query")
+    destination_url = validate_destination_url(values.get("destination_url"))
+    model = require_non_empty(str(values.get("model") or DEFAULT_MODEL), "model")
+    temperature = parse_temperature(values.get("temperature"))
     return query, destination_url, model, temperature

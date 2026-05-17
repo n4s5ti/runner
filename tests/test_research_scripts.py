@@ -151,5 +151,25 @@ class SearxngParsingTests(unittest.TestCase):
         self.assertIn("format=json", seen_paths[0])
 
 
+class GithubEventTests(unittest.TestCase):
+    def test_loads_workflow_dispatch_inputs(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            event = Path(tmp) / "event.json"
+            event.write_text(json.dumps({"inputs": {"query": "q", "destination_url": "https://example.test/hook", "model": "m", "temperature": "0.3"}}), encoding="utf-8")
+            args = type("Args", (), {"github_event_path": str(event), "event_name": "workflow_dispatch", "query": None, "destination_url": None, "model": None, "temperature": None, "top_n": None})()
+            query, destination_url, model, temperature = research_common.validate_common_args(args)
+        self.assertEqual(query, "q")
+        self.assertEqual(destination_url, "https://example.test/hook")
+        self.assertEqual(model, "m")
+        self.assertEqual(temperature, 0.3)
+
+    def test_loads_repository_dispatch_payload(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            event = Path(tmp) / "event.json"
+            event.write_text(json.dumps({"client_payload": {"query": "q", "destination_url": "https://example.test/hook", "top_n": "4"}}), encoding="utf-8")
+            payload = research_common.load_github_request(event, "repository_dispatch")
+        self.assertEqual(payload["top_n"], "4")
+
+
 if __name__ == "__main__":
     unittest.main()

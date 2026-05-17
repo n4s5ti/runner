@@ -13,6 +13,7 @@ from urllib.request import Request, urlopen
 from research_common import (
     add_common_arguments,
     parse_top_n,
+    resolve_request_values,
     query_sha256,
     require_non_empty,
     run_ollama,
@@ -115,11 +116,11 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     add_common_arguments(parser)
     parser.add_argument("--searxng-url", default=DEFAULT_SEARXNG_URL)
-    parser.add_argument("--top-n", default="5")
+    parser.add_argument("--top-n")
     args = parser.parse_args()
 
     query, _destination_url, model, temperature = validate_common_args(args)
-    top_n = parse_top_n(args.top_n)
+    top_n = parse_top_n(resolve_request_values(args).get("top_n"))
     qhash = query_sha256(query)
     print(f"research-searxng-ollama starting query_sha256={qhash}")
     sources = search_searxng(base_url=args.searxng_url, query=query, top_n=top_n)

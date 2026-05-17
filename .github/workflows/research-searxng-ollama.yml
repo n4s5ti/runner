@@ -43,14 +43,6 @@ jobs:
           - 8080:8080
         volumes:
           - ${{ github.workspace }}/searxng-config:/etc/searxng
-    env:
-      QUERY: ${{ github.event_name == 'repository_dispatch' && github.event.client_payload.query || inputs.query }}
-      DESTINATION_URL: ${{ github.event_name == 'repository_dispatch' && github.event.client_payload.destination_url || inputs.destination_url }}
-      MODEL: ${{ github.event_name == 'repository_dispatch' && github.event.client_payload.model || inputs.model || 'llama3.2:3b' }}
-      TEMPERATURE: ${{ github.event_name == 'repository_dispatch' && github.event.client_payload.temperature || inputs.temperature || '0.2' }}
-      TOP_N: ${{ github.event_name == 'repository_dispatch' && github.event.client_payload.top_n || inputs.top_n || '5' }}
-      SEARXNG_URL: http://127.0.0.1:8080
-      RESULT_PATH: result.json
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -68,6 +60,15 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.x"
+
+      - name: Validate request
+        id: request
+        run: |
+          python source/scripts/resolve_request.py \
+            --github-event-path "$GITHUB_EVENT_PATH" \
+            --event-name "$GITHUB_EVENT_NAME" \
+            --github-output "$GITHUB_OUTPUT" \
+            --include-top-n
 
       - name: Wait for SearXNG
         run: |
@@ -89,19 +90,19 @@ jobs:
         uses: ai-action/setup-ollama@v2
 
       - name: Pull model
-        run: ollama pull "$MODEL"
+        run: ollama pull "${{ steps.request.outputs.model }}"
 
       - name: Run research
         run: |
           python source/scripts/searxng_ollama_research.py \
-            --query "$QUERY" \
-            --destination-url "$DESTINATION_URL" \
-            --model "$MODEL" \
-            --temperature "$TEMPERATURE" \
-            --searxng-url "$SEARXNG_URL" \
-            --top-n "$TOP_N" \
-            --output "$RESULT_PATH"
+            --github-event-path "$GITHUB_EVENT_PATH" \
+            --event-name "$GITHUB_EVENT_NAME" \
+            --searxng-url http://127.0.0.1:8080 \
+            --output result.json
 
       - name: Post result
         run: |
-          curl -fsS -o /dev/null -H 'Content-Type: application/json' --data-binary "@$RESULT_PATH" "$DESTINATION_URL"
+          python source/scripts/post_result.py \
+            --github-event-path "$GITHUB_EVENT_PATH" \
+            --event-name "$GITHUB_EVENT_NAME" \
+            --result result.json
