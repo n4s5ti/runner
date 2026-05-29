@@ -26,6 +26,7 @@ name: research-ollama
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   research:
@@ -60,6 +61,14 @@ jobs:
             --github-event-path "$GITHUB_EVENT_PATH" \
             --event-name "$GITHUB_EVENT_NAME" \
             --output result.json
+
+      - name: Upload result artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ollama-result-${{ github.run_id }}
+          path: result.json
+          if-no-files-found: error
+          retention-days: 1
 
       - name: Post result
         run: |
