@@ -7,23 +7,20 @@ task:
 
   env:
     APP_ENV: production
-    MULTICA_REPO: https://github.com/n4s5ti/multica.git
-    MULTICA_REF: main
-    HOMEBREW_NO_INSTALL_CLEANUP: 1
 
-  pnpm_cache:
-    folder: multica/apps/mobile/node_modules
-    fingerprint_script: cat multica/pnpm-lock.yaml 2>/dev/null || true
-    populate_script: |
-      [ -d multica ] || git clone --depth 1 --branch "${MULTICA_REF}" "${MULTICA_REPO}" multica
-      cd multica && npm install -g pnpm@latest && pnpm install
+  clone_script: |
+    git clone --depth 1 --branch main https://github.com/n4s5ti/multica.git multica
 
-  setup_script: |
-    [ -d multica ] || git clone --depth 1 --branch "${MULTICA_REF}" "${MULTICA_REPO}" multica
+  install_script: |
+    cd multica
+    npm install -g pnpm@latest
+    pnpm install
+
+  prebuild_script: |
     cd multica/apps/mobile
     npx expo prebuild --platform ios --clean
 
-  pod_install_script: |
+  pod_script: |
     cd multica/apps/mobile/ios
     pod install
 
