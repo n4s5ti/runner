@@ -1,0 +1,57 @@
+task:
+  name: Build Multica iOS IPA
+  alias: build-ios
+
+  macos_instance:
+    image: ghcr.io/cirruslabs/macos-runner:sonoma
+
+  env:
+    APP_ENV: production
+    MULTICA_REPO: https://github.com/n4s5ti/multica.git
+    MULTICA_REF: main
+    HOMEBREW_NO_INSTALL_CLEANUP: 1
+
+  pnpm_cache:
+    folder: multica/apps/mobile/node_modules
+    fingerprint_script: cat multica/pnpm-lock.yaml 2>/dev/null || true
+    populate_script: |
+      [ -d multica ] || git clone --depth 1 --branch "${MULTICA_REF}" "${MULTICA_REPO}" multica
+      cd multica && npm install -g pnpm@latest && pnpm install
+
+  setup_script: |
+    [ -d multica ] || git clone --depth 1 --branch "${MULTICA_REF}" "${MULTICA_REPO}" multica
+    cd multica/apps/mobile
+    npx expo prebuild --platform ios --clean
+
+  pod_install_script: |
+    cd multica/apps/mobile/ios
+    pod install
+
+  build_script: |
+    cd multica/apps/mobile
+    SCHEME=$(xcodebuild -list -workspace ios/*.xcworkspace 2>/dev/null \
+      | awk '/Schemes:/{f=1; next} f && NF{gsub(/^[ \t]+|[ \t]+$/,""); print; exit}')
+    echo "Scheme: ${SCHEME:-Multica}"
+    xcodebuild clean archive \
+      -workspace "ios/${SCHEME}.xcworkspace" \
+      -scheme "${SCHEME}" \
+      -configuration Release \
+      -archivePath build/Multica.xcarchive \
+      -sdk iphoneos \
+      -destination 'generic/platform=iOS' \
+      ONLY_ACTIVE_ARCH=NO \
+      CODE_SIGN_IDENTITY="" \
+      CODE_SIGNING_REQUIRED=NO \
+      CODE_SIGNING_ALLOWED=NO
+
+  package_script: |
+    cd multica/apps/mobile
+    SCHEME=$(xcodebuild -list -workspace ios/*.xcworkspace 2>/dev/null \
+      | awk '/Schemes:/{f=1; next} f && NF{gsub(/^[ \t]+|[ \t]+$/,""); print; exit}')
+    SCHEME="${SCHEME:-Multica}"
+    mkdir -p Payload
+    cp -R "build/Multica.xcarchive/Products/Applications/${SCHEME}.app" "Payload/${SCHEME}.app"
+    cd Payload && zip -r ../multica.ipa . && cd ..
+
+  artifacts:
+    multica-ios-unsigned: multica/apps/mobile/multica.ipa
