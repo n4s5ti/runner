@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vane Relay</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f1117; color: #e1e4e8; min-height: 100vh;
+    }
+    #root { min-height: 100vh; }
+    .vane-container { max-width: 820px; margin: 0 auto; padding: 24px 16px 120px; }
+    .vane-search { position: relative; margin-bottom: 32px; }
+    .vane-search textarea {
+      width: 100%; min-height: 60px; padding: 16px 20px;
+      background: #1a1d27; color: #e1e4e8; border: 1px solid #30363d;
+      border-radius: 12px; font-size: 16px; line-height: 1.5;
+      resize: none; outline: none; font-family: inherit;
+    }
+    .vane-search textarea:focus { border-color: #58a6ff; }
+    .vane-search-row {
+      display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; align-items: center;
+    }
+    .vane-search-row select, .vane-search-row button {
+      padding: 6px 14px; border-radius: 8px; border: 1px solid #30363d;
+      background: #1a1d27; color: #e1e4e8; font-size: 13px; cursor: pointer;
+    }
+    .vane-search-row button {
+      background: #238636; border-color: #238636; font-weight: 600;
+    }
+    .vane-search-row button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .vane-message { margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px solid #21262d; }
+    .vane-query { font-size: 20px; font-weight: 600; margin-bottom: 12px; color: #f0f6fc; }
+    .vane-answer { line-height: 1.7; font-size: 15px; color: #c9d1d9; }
+    .vane-answer h2 { font-size: 18px; margin: 20px 0 10px; color: #f0f6fc; }
+    .vane-answer h3 { font-size: 16px; margin: 16px 0 8px; color: #e1e4e8; }
+    .vane-answer p { margin: 8px 0; }
+    .vane-answer ul, .vane-answer ol { margin: 8px 0; padding-left: 24px; }
+    .vane-answer code { background: #1a1d27; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+    .vane-answer pre { background: #1a1d27; padding: 12px 16px; border-radius: 8px; overflow-x: auto; margin: 12px 0; }
+    .vane-sources { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+    .vane-source {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 12px; background: #1a1d27; border: 1px solid #30363d;
+      border-radius: 20px; font-size: 12px; color: #8b949e; text-decoration: none;
+    }
+    .vane-source:hover { border-color: #58a6ff; color: #c9d1d9; }
+    .vane-loading { display: flex; align-items: center; gap: 10px; padding: 20px; color: #8b949e; }
+    .vane-spinner { width: 20px; height: 20px; border: 2px solid #30363d; border-top: 2px solid #58a6ff; border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .vane-error { padding: 16px; background: #2d1215; border: 1px solid #da3633; border-radius: 12px; color: #f85149; margin: 16px 0; }
+    .vane-error button { margin-left: 12px; padding: 4px 12px; background: #da3633; color: #fff; border: none; border-radius: 6px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div id="root">
+    <div class="vane-container">
+      <div class="vane-loading"><div class="vane-spinner"></div>Loading Vane Relay...</div>
+    </div>
+  </div>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/dexie@4.0.8/dist/dexie.min.mjs" type="module"></script>
+  <script src="https://unpkg.com/fflate@0.8.2/umd/index.min.js"></script>
+  <script src="https://unpkg.com/marked@12.0.2/marked.min.js"></script>
+  <script type="module" src="src/app.js"></script>
+</body>
+</html>
