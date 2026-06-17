@@ -1,13 +1,6 @@
-import { Discover } from '../discover.js';
-import Link from './Link.jsx';
+import Link from './Link.js';
 
-const MajorNewsCard = ({
-  item,
-  isLeft = true,
-}: {
-  item: Discover;
-  isLeft?: boolean;
-}) => (
+const MajorNewsCard = ({ item, isLeft = true }) => (
   <Link
     href={`/?q=Summary: ${item.url}`}
     className="w-full group flex flex-row items-stretch gap-6 h-60 py-3"

@@ -1,7 +1,6 @@
-import { Discover } from '../discover.js';
-import Link from './Link.jsx';
+import Link from './Link.js';
 
-const SmallNewsCard = ({ item }: { item: Discover }) => (
+const SmallNewsCard = ({ item }) => (
   <Link
     href={`/?q=Summary: ${item.url}`}
     className="rounded-3xl overflow-hidden bg-light-secondary dark:bg-dark-secondary shadow-sm shadow-light-200/10 dark:shadow-black/25 group flex flex-col"

@@ -1,26 +1,26 @@
-'use client';
-
 import { CheckIcon, CopyIcon } from '@phosphor-icons/react';
-import React, { useEffect, useMemo, useState } from 'react';
-import { useTheme } from 'next-themes';
+import { useEffect, useMemo, useState } from 'react';
 import SyntaxHighlighter from 'react-syntax-highlighter';
-import darkTheme from './CodeBlockDarkTheme';
-import lightTheme from './CodeBlockLightTheme';
+import darkTheme from './CodeBlockDarkTheme.js';
+import lightTheme from './CodeBlockLightTheme.js';
 
-const CodeBlock = ({
-  language,
-  children,
-}: {
-  language: string;
-  children: React.ReactNode;
-}) => {
-  const { resolvedTheme } = useTheme();
+const CodeBlock = ({ language, children }) => {
+  const [resolvedTheme, setResolvedTheme] = useState(
+    typeof document !== 'undefined' && document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+  );
   const [mounted, setMounted] = useState(false);
 
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     setMounted(true);
+    const observer = new MutationObserver(() => {
+      setResolvedTheme(
+        document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+      );
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
   }, []);
 
   const syntaxTheme = useMemo(() => {
@@ -33,7 +33,7 @@ const CodeBlock = ({
       <button
         className="absolute top-2 right-2 p-1"
         onClick={() => {
-          navigator.clipboard.writeText(children as string);
+          navigator.clipboard.writeText(typeof children === 'string' ? children : '');
           setCopied(true);
           setTimeout(() => setCopied(false), 2000);
         }}
@@ -55,7 +55,7 @@ const CodeBlock = ({
         style={syntaxTheme}
         showInlineLineNumbers
       >
-        {children as string}
+        {children}
       </SyntaxHighlighter>
     </div>
   );

@@ -1,4 +1,3 @@
-/* eslint-disable @next/next/no-img-element */
 import {
   Dialog,
   DialogPanel,
@@ -8,9 +7,7 @@ import {
 } from '@headlessui/react';
 import { File } from 'lucide-react';
 import { Fragment, useState } from 'react';
-import { Chunk } from '../types.js';
-
-const MessageSources = ({ sources }: { sources: Chunk[] }) => {
+const MessageSources = ({ sources }) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const closeModal = () => {

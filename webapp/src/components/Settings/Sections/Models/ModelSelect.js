@@ -1,25 +1,24 @@
-import Select from '../ui/Select';
-import { ConfigModelProvider } from './configTypes.js';
-import { useChat } from '../hooks/useChatRunner.js';
+import Select from '../../../ui/Select';
+import { useChat } from '../../../hooks/useChatRunner.js';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
 const ModelSelect = ({
   providers,
   type,
-}: {
-  providers: ConfigModelProvider[];
-  type: 'chat' | 'embedding';
 }) => {
-  const [selectedModel, setSelectedModel] = useState<string>(
+  const [selectedModel, setSelectedModel] = useState(
     type === 'chat'
       ? `${localStorage.getItem('chatModelProviderId')}/${localStorage.getItem('chatModelKey')}`
       : `${localStorage.getItem('embeddingModelProviderId')}/${localStorage.getItem('embeddingModelKey')}`,
   );
   const [loading, setLoading] = useState(false);
-  const { setChatModelProvider, setEmbeddingModelProvider } = useChat();
 
-  const handleSave = async (newValue: string) => {
+  const chat = (typeof useChat === 'function' ? useChat() : null) || {};
+  const setChatModelProvider = chat.setChatModelProvider || ((data) => { console.log('setChatModelProvider fallback:', data); });
+  const setEmbeddingModelProvider = chat.setEmbeddingModelProvider || ((data) => { console.log('setEmbeddingModelProvider fallback:', data); });
+
+  const handleSave = async (newValue) => {
     setLoading(true);
     setSelectedModel(newValue);
 

@@ -1,14 +1,7 @@
-'use client';
-
 import { useEffect, useState } from 'react';
 import { ChevronDown, ChevronUp, BrainCircuit } from 'lucide-react';
 
-interface ThinkBoxProps {
-  content: string;
-  thinkingEnded: boolean;
-}
-
-const ThinkBox = ({ content, thinkingEnded }: ThinkBoxProps) => {
+const ThinkBox = ({ content, thinkingEnded }) => {
   const [isExpanded, setIsExpanded] = useState(true);
 
   useEffect(() => {

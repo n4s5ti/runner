@@ -1,5 +1,3 @@
-'use client';
-
 import { Fragment, useEffect, useRef, useState } from 'react';
 import MessageInput from './MessageInput';
 import MessageBox from './MessageBox';
@@ -10,9 +8,9 @@ const Chat = () => {
   const { sections, loading, messageAppeared, messages } = useChat();
 
   const [dividerWidth, setDividerWidth] = useState(0);
-  const dividerRef = useRef<HTMLDivElement | null>(null);
-  const messageEnd = useRef<HTMLDivElement | null>(null);
-  const lastScrolledRef = useRef<number>(0);
+  const dividerRef = useRef(null);
+  const messageEnd = useRef(null);
+  const lastScrolledRef = useRef(0);
 
   useEffect(() => {
     const updateDividerWidth = () => {

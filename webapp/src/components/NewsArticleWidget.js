@@ -1,14 +1,7 @@
 import { useEffect, useState } from 'react';
 
-interface Article {
-  title: string;
-  content: string;
-  url: string;
-  thumbnail: string;
-}
-
 const NewsArticleWidget = () => {
-  const [article, setArticle] = useState<Article | null>(null);
+  const [article, setArticle] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
@@ -16,7 +9,7 @@ const NewsArticleWidget = () => {
     fetch('/api/discover?mode=preview')
       .then((res) => res.json())
       .then((data) => {
-        const articles = (data.blogs || []).filter((a: Article) => a.thumbnail);
+        const articles = (data.blogs || []).filter((a) => a.thumbnail);
         setArticle(articles[Math.floor(Math.random() * articles.length)]);
         setLoading(false);
       })

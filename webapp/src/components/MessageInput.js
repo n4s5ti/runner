@@ -11,7 +11,7 @@ const MessageInput = () => {
   const [copilotEnabled, setCopilotEnabled] = useState(false);
   const [message, setMessage] = useState('');
   const [textareaRows, setTextareaRows] = useState(1);
-  const [mode, setMode] = useState<'multi' | 'single'>('single');
+  const [mode, setMode] = useState('single');
 
   useEffect(() => {
     if (textareaRows >= 2 && message && mode === 'single') {
@@ -21,10 +21,10 @@ const MessageInput = () => {
     }
   }, [textareaRows, mode, message]);
 
-  const inputRef = useRef<HTMLTextAreaElement | null>(null);
+  const inputRef = useRef(null);
 
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
+    const handleKeyDown = (e) => {
       const activeElement = document.activeElement;
 
       const isInputFocused =

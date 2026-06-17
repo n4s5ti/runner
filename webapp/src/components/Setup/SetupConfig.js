@@ -1,8 +1,3 @@
-import {
-  ConfigModelProvider,
-  UIConfigField,
-  UIConfigSections,
-} from './configTypes.js';
 import { motion } from 'framer-motion';
 import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -15,12 +10,8 @@ const SetupConfig = ({
   configSections,
   setupState,
   setSetupState,
-}: {
-  configSections: UIConfigSections;
-  setupState: number;
-  setSetupState: (state: number) => void;
 }) => {
-  const [providers, setProviders] = useState<ConfigModelProvider[]>([]);
+  const [providers, setProviders] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isFinishing, setIsFinishing] = useState(false);
 
@@ -28,11 +19,8 @@ const SetupConfig = ({
     const fetchProviders = async () => {
       try {
         setIsLoading(true);
-        const res = await fetch('/api/providers');
-        if (!res.ok) throw new Error('Failed to fetch providers');
-
-        const data = await res.json();
-        setProviders(data.providers || []);
+        console.log('Providers: using local state (no server fetch)');
+        setProviders([]);
       } catch (error) {
         console.error('Error fetching providers:', error);
         toast.error('Failed to load providers');
@@ -47,20 +35,8 @@ const SetupConfig = ({
   }, [setupState]);
 
   const handleFinish = async () => {
-    try {
-      setIsFinishing(true);
-      const res = await fetch('/api/config/setup-complete', {
-        method: 'POST',
-      });
-
-      if (!res.ok) throw new Error('Failed to complete setup');
-
-      window.location.reload();
-    } catch (error) {
-      console.error('Error completing setup:', error);
-      toast.error('Failed to complete setup');
-      setIsFinishing(false);
-    }
+    setIsFinishing(true);
+    window.location.reload();
   };
 
   const visibleProviders = providers.filter(
@@ -120,7 +96,7 @@ const SetupConfig = ({
                     fields={
                       (configSections.modelProviders.find(
                         (f) => f.key === provider.type,
-                      )?.fields ?? []) as UIConfigField[]
+                      )?.fields ?? [])
                     }
                     modelProvider={provider}
                     setProviders={setProviders}

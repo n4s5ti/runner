@@ -6,22 +6,22 @@ import {
 } from '@headlessui/react';
 import { File, LoaderCircle, Paperclip, Plus, Trash } from 'lucide-react';
 import { Fragment, useRef, useState } from 'react';
-import { useChat } from '../hooks/useChatRunner.js';
 import { AnimatePresence } from 'motion/react';
 import { motion } from 'framer-motion';
 
 const AttachSmall = () => {
-  const { files, setFiles, setFileIds, fileIds } = useChat();
+  const [files, setFiles] = useState([]);
+  const [fileIds, setFileIds] = useState([]);
 
   const [loading, setLoading] = useState(false);
-  const fileInputRef = useRef<any>();
+  const fileInputRef = useRef();
 
-  const handleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = async (e) => {
     setLoading(true);
     const data = new FormData();
 
-    for (let i = 0; i < e.target.files!.length; i++) {
-      data.append('files', e.target.files![i]);
+    for (let i = 0; i < e.target.files.length; i++) {
+      data.append('files', e.target.files[i]);
     }
 
     const embeddingModelProvider = localStorage.getItem(
@@ -29,8 +29,8 @@ const AttachSmall = () => {
     );
     const embeddingModel = localStorage.getItem('embeddingModelKey');
 
-    data.append('embedding_model_provider_id', embeddingModelProvider!);
-    data.append('embedding_model_key', embeddingModel!);
+    data.append('embedding_model_provider_id', embeddingModelProvider);
+    data.append('embedding_model_key', embeddingModel);
 
     const res = await fetch(`/api/uploads`, {
       method: 'POST',
@@ -40,7 +40,7 @@ const AttachSmall = () => {
     const resData = await res.json();
 
     setFiles([...files, ...resData.files]);
-    setFileIds([...fileIds, ...resData.files.map((file: any) => file.fileId)]);
+    setFileIds([...fileIds, ...resData.files.map((file) => file.fileId)]);
     setLoading(false);
   };
 

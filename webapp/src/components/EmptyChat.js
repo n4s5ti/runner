@@ -1,45 +1,12 @@
-'use client';
-
-import { useEffect, useState } from 'react';
-import { Settings } from 'lucide-react';
+import { useState } from 'react';
 import EmptyChatMessageInput from './EmptyChatMessageInput';
-import { File } from './ChatWindow';
-import Link from './Link.jsx';
 import WeatherWidget from './WeatherWidget';
 import NewsArticleWidget from './NewsArticleWidget';
-import SettingsButtonMobile from '../Settings/SettingsButtonMobile';
-import {
-  getShowNewsWidget,
-  getShowWeatherWidget,
-} from '../config.js';
+import SettingsButtonMobile from './Settings/SettingsButtonMobile';
 
 const EmptyChat = () => {
-  const [showWeather, setShowWeather] = useState(() =>
-    typeof window !== 'undefined' ? getShowWeatherWidget() : true,
-  );
-  const [showNews, setShowNews] = useState(() =>
-    typeof window !== 'undefined' ? getShowNewsWidget() : true,
-  );
-
-  useEffect(() => {
-    const updateWidgetVisibility = () => {
-      setShowWeather(getShowWeatherWidget());
-      setShowNews(getShowNewsWidget());
-    };
-
-    updateWidgetVisibility();
-
-    window.addEventListener('client-config-changed', updateWidgetVisibility);
-    window.addEventListener('storage', updateWidgetVisibility);
-
-    return () => {
-      window.removeEventListener(
-        'client-config-changed',
-        updateWidgetVisibility,
-      );
-      window.removeEventListener('storage', updateWidgetVisibility);
-    };
-  }, []);
+  const [showWeather] = useState(true);
+  const [showNews] = useState(true);
 
   return (
     <div className="relative">

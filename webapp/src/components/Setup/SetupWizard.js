@@ -1,20 +1,15 @@
-'use client';
-
 import { useEffect, useState } from 'react';
-import { UIConfigSections } from './configTypes.js';
 import { AnimatePresence, motion } from 'framer-motion';
 import SetupConfig from './SetupConfig';
 
 const SetupWizard = ({
   configSections,
-}: {
-  configSections: UIConfigSections;
 }) => {
   const [showWelcome, setShowWelcome] = useState(true);
   const [showSetup, setShowSetup] = useState(false);
   const [setupState, setSetupState] = useState(1);
 
-  const delay = (ms: number) =>
+  const delay = (ms) =>
     new Promise((resolve) => setTimeout(resolve, ms));
 
   useEffect(() => {

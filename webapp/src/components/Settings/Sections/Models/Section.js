@@ -1,21 +1,13 @@
 import React, { useState } from 'react';
 import AddProvider from './AddProviderDialog';
-import {
-  ConfigModelProvider,
-  ModelProviderUISection,
-  UIConfigField,
-} from './configTypes.js';
 import ModelProvider from './ModelProvider';
 import ModelSelect from './ModelSelect';
 
 const Models = ({
   fields,
   values,
-}: {
-  fields: ModelProviderUISection[];
-  values: ConfigModelProvider[];
 }) => {
-  const [providers, setProviders] = useState<ConfigModelProvider[]>(values);
+  const [providers, setProviders] = useState(values);
 
   return (
     <div className="flex-1 space-y-6 overflow-y-auto py-6">
@@ -76,7 +68,7 @@ const Models = ({
               key={`provider-${provider.id}`}
               fields={
                 (fields.find((f) => f.key === provider.type)?.fields ??
-                  []) as UIConfigField[]
+                  [])
               }
               modelProvider={provider}
               setProviders={setProviders}

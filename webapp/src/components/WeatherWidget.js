@@ -18,7 +18,6 @@ const WeatherWidget = () => {
   const getApproxLocation = async () => {
     const res = await fetch('https://ipwhois.app/json/');
     const data = await res.json();
-
     return {
       latitude: data.latitude,
       longitude: data.longitude,
@@ -26,32 +25,21 @@ const WeatherWidget = () => {
     };
   };
 
-  const getLocation = async (
-    callback: (location: {
-      latitude: number;
-      longitude: number;
-      city: string;
-    }) => void,
-  ) => {
+  const getLocation = async (callback) => {
     if (navigator.geolocation) {
       const result = await navigator.permissions.query({
         name: 'geolocation',
       });
-
       if (result.state === 'granted') {
         navigator.geolocation.getCurrentPosition(async (position) => {
           const res = await fetch(
             `https://api-bdc.io/data/reverse-geocode-client?latitude=${position.coords.latitude}&longitude=${position.coords.longitude}&localityLanguage=en`,
             {
               method: 'GET',
-              headers: {
-                'Content-Type': 'application/json',
-              },
+              headers: { 'Content-Type': 'application/json' },
             },
           );
-
           const data = await res.json();
-
           callback({
             latitude: position.coords.latitude,
             longitude: position.coords.longitude,
@@ -71,32 +59,64 @@ const WeatherWidget = () => {
 
   const updateWeather = async () => {
     getLocation(async (location) => {
-      const res = await fetch(`/api/weather`, {
-        method: 'POST',
-        body: JSON.stringify({
-          lat: location.latitude,
-          lng: location.longitude,
-          measureUnit: localStorage.getItem('measureUnit') ?? 'Metric',
-        }),
+      const measureUnit = localStorage.getItem('measureUnit') ?? 'Metric';
+      const isImperial = measureUnit === 'Imperial';
+
+      const params = new URLSearchParams({
+        latitude: location.latitude,
+        longitude: location.longitude,
+        current: 'temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code,is_day',
+        temperature_unit: isImperial ? 'fahrenheit' : 'celsius',
+        wind_speed_unit: isImperial ? 'mph' : 'kmh',
+        timezone: 'auto',
       });
 
-      const data = await res.json();
-
-      if (res.status !== 200) {
+      const res = await fetch(`https://api.open-meteo.com/v1/forecast?${params}`);
+      if (!res.ok) {
         console.error('Error fetching weather data');
         setLoading(false);
         return;
       }
+      const json = await res.json();
+      const c = json.current;
+
+      const wmoIcons = {
+        0: 'clear', 1: 'clear', 2: 'cloudy-1', 3: 'cloudy-1',
+        45: 'fog', 48: 'fog',
+        51: 'rainy-1', 53: 'rainy-1', 55: 'rainy-2',
+        61: 'rainy-2', 63: 'rainy-2', 65: 'rainy-3',
+        71: 'snowy-1', 73: 'snowy-2', 75: 'snowy-3', 77: 'snowy-1',
+        80: 'rainy-2', 81: 'rainy-2', 82: 'rainy-3',
+        85: 'snowy-2', 86: 'snowy-3',
+        95: 'scattered-thunderstorms', 96: 'severe-thunderstorm', 99: 'severe-thunderstorm',
+      };
+
+      const wmoConditions = {
+        0: 'Clear', 1: 'Mostly Clear', 2: 'Partly Cloudy', 3: 'Cloudy',
+        45: 'Foggy', 48: 'Rime Fog',
+        51: 'Light Drizzle', 53: 'Drizzle', 55: 'Heavy Drizzle',
+        61: 'Light Rain', 63: 'Rain', 65: 'Heavy Rain',
+        71: 'Light Snow', 73: 'Snow', 75: 'Heavy Snow', 77: 'Snow Grains',
+        80: 'Light Showers', 81: 'Showers', 82: 'Heavy Showers',
+        85: 'Light Snow Showers', 86: 'Snow Showers',
+        95: 'Thunderstorm', 96: 'Thunderstorm + Hail', 99: 'Severe Thunderstorm',
+      };
+
+      const code = c.weather_code ?? 0;
+      const isDay = c.is_day === 1;
+      const iconBase = wmoIcons[code] || 'clear';
+      const icon = code >= 96 ? iconBase : `${iconBase}-${isDay ? 'day' : 'night'}`;
+      const condition = wmoConditions[code] || 'Unknown';
 
       setData({
-        temperature: data.temperature,
-        condition: data.condition,
+        temperature: Math.round(c.temperature_2m),
+        condition,
         location: location.city,
-        humidity: data.humidity,
-        windSpeed: data.windSpeed,
-        icon: data.icon,
-        temperatureUnit: data.temperatureUnit,
-        windSpeedUnit: data.windSpeedUnit,
+        humidity: c.relative_humidity_2m ?? 0,
+        windSpeed: Math.round(c.wind_speed_10m ?? 0),
+        icon,
+        temperatureUnit: isImperial ? 'F' : 'C',
+        windSpeedUnit: isImperial ? 'mph' : 'km/h',
       });
       setLoading(false);
     });

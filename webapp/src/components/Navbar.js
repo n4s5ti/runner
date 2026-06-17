@@ -1,5 +1,4 @@
-import { Clock, Edit, Share, Trash, FileText, FileDown } from 'lucide-react';
-import { Message } from './ChatWindow';
+import { Clock, Edit, Share, FileText, FileDown } from 'lucide-react';
 import { useEffect, useState, Fragment } from 'react';
 import { formatTimeDifference } from '../utils.js';
 import DeleteChat from './DeleteChat';
@@ -10,10 +9,9 @@ import {
   Transition,
 } from '@headlessui/react';
 import jsPDF from 'jspdf';
-import { useChat, Section } from '../hooks/useChatRunner.js';
-import { SourceBlock } from '../types.js';
+import { useChat } from '../hooks/useChatRunner.js';
 
-const downloadFile = (filename: string, content: string, type: string) => {
+const downloadFile = (filename, content, type) => {
   const blob = new Blob([content], { type });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -27,14 +25,14 @@ const downloadFile = (filename: string, content: string, type: string) => {
   }, 0);
 };
 
-const exportAsMarkdown = (sections: Section[], title: string) => {
+const exportAsMarkdown = (sections, title) => {
   const date = new Date(
     sections[0].message.createdAt || Date.now(),
   ).toLocaleString();
   let md = `# 💬 Chat Export: ${title}\n\n`;
   md += `*Exported on: ${date}*\n\n---\n`;
 
-  sections.forEach((section, idx) => {
+  sections.forEach((section) => {
     md += `\n---\n`;
     md += `**🧑 User**  
 `;
@@ -55,7 +53,7 @@ const exportAsMarkdown = (sections: Section[], title: string) => {
 
     const sourceResponseBlock = section.message.responseBlocks.find(
       (block) => block.type === 'source',
-    ) as SourceBlock | undefined;
+    );
 
     if (
       sourceResponseBlock &&
@@ -63,7 +61,7 @@ const exportAsMarkdown = (sections: Section[], title: string) => {
       sourceResponseBlock.data.length > 0
     ) {
       md += `\n**Citations:**\n`;
-      sourceResponseBlock.data.forEach((src: any, i: number) => {
+      sourceResponseBlock.data.forEach((src, i) => {
         const url = src.metadata?.url || '';
         md += `- [${i + 1}] [${url}](${url})\n`;
       });
@@ -73,7 +71,7 @@ const exportAsMarkdown = (sections: Section[], title: string) => {
   downloadFile(`${title || 'chat'}.md`, md, 'text/markdown');
 };
 
-const exportAsPDF = (sections: Section[], title: string) => {
+const exportAsPDF = (sections, title) => {
   const doc = new jsPDF();
   const date = new Date(
     sections[0]?.message?.createdAt || Date.now(),
@@ -92,7 +90,7 @@ const exportAsPDF = (sections: Section[], title: string) => {
   y += 6;
   doc.setTextColor(30);
 
-  sections.forEach((section, idx) => {
+  sections.forEach((section) => {
     if (y > pageHeight - 30) {
       doc.addPage();
       y = 15;
@@ -157,7 +155,7 @@ const exportAsPDF = (sections: Section[], title: string) => {
 
       const sourceResponseBlock = section.message.responseBlocks.find(
         (block) => block.type === 'source',
-      ) as SourceBlock | undefined;
+      );
 
       if (
         sourceResponseBlock &&
@@ -172,7 +170,7 @@ const exportAsPDF = (sections: Section[], title: string) => {
         }
         doc.text('Citations:', 12, y);
         y += 5;
-        sourceResponseBlock.data.forEach((src: any, i: number) => {
+        sourceResponseBlock.data.forEach((src, i) => {
           const url = src.metadata?.url || '';
           if (y > pageHeight - 15) {
             doc.addPage();
@@ -197,10 +195,10 @@ const exportAsPDF = (sections: Section[], title: string) => {
 };
 
 const Navbar = () => {
-  const [title, setTitle] = useState<string>('');
-  const [timeAgo, setTimeAgo] = useState<string>('');
+  const [title, setTitle] = useState('');
+  const [timeAgo, setTimeAgo] = useState('');
 
-  const { sections, chatId } = useChat();
+  const { sections, chatIdRef } = useChat();
 
   useEffect(() => {
     if (sections.length > 0 && sections[0].message) {
@@ -210,27 +208,18 @@ const Navbar = () => {
           : sections[0].message.query || 'New Conversation';
 
       setTitle(newTitle);
-      const newTimeAgo = formatTimeDifference(
-        new Date(),
-        sections[0].message.createdAt,
-      );
-      setTimeAgo(newTimeAgo);
+      setTimeAgo(formatTimeDifference(sections[0].message.createdAt));
     }
   }, [sections]);
 
   useEffect(() => {
     const intervalId = setInterval(() => {
       if (sections.length > 0 && sections[0].message) {
-        const newTimeAgo = formatTimeDifference(
-          new Date(),
-          sections[0].message.createdAt,
-        );
-        setTimeAgo(newTimeAgo);
+        setTimeAgo(formatTimeDifference(sections[0].message.createdAt));
       }
     }, 1000);
 
     return () => clearInterval(intervalId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -246,7 +235,7 @@ const Navbar = () => {
             </a>
             <div className="hidden lg:flex items-center gap-2 text-black/50 dark:text-white/50 min-w-0">
               <Clock size={14} />
-              <span className="text-xs whitespace-nowrap">{timeAgo} ago</span>
+              <span className="text-xs whitespace-nowrap">{timeAgo}</span>
             </div>
           </div>
 
@@ -313,7 +302,7 @@ const Navbar = () => {
             </Popover>
             <DeleteChat
               redirect
-              chatId={chatId!}
+              chatId={chatIdRef.current}
               chats={[]}
               setChats={() => {}}
             />

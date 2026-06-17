@@ -1,7 +1,4 @@
-'use client';
-
-/* eslint-disable @next/next/no-img-element */
-import React, { MutableRefObject } from 'react';
+import React from 'react';
 import { cn } from '../utils.js';
 import {
   BookCopy,
@@ -12,7 +9,7 @@ import {
   Plus,
   CornerDownRight,
 } from 'lucide-react';
-import Markdown, { MarkdownToJSX, RuleType } from 'markdown-to-jsx';
+import Markdown from 'markdown-to-jsx';
 import Copy from './MessageActions/Copy';
 import Rewrite from './MessageActions/Rewrite';
 import MessageSources from './MessageSources';
@@ -20,36 +17,19 @@ import SearchImages from './SearchImages';
 import SearchVideos from './SearchVideos';
 import { useSpeech } from 'react-text-to-speech';
 import ThinkBox from './ThinkBox';
-import { useChat, Section } from '../hooks/useChatRunner.js';
+import { useChat } from '../hooks/useChatRunner.js';
 import Citation from './MessageRenderer/Citation';
 import AssistantSteps from './AssistantSteps';
-import { ResearchBlock } from '../types.js';
 import Renderer from './Widgets/Renderer';
 import CodeBlock from './MessageRenderer/CodeBlock';
 
-const ThinkTagProcessor = ({
-  children,
-  thinkingEnded,
-}: {
-  children: React.ReactNode;
-  thinkingEnded: boolean;
-}) => {
+const ThinkTagProcessor = ({ children, thinkingEnded }) => {
   return (
-    <ThinkBox content={children as string} thinkingEnded={thinkingEnded} />
+    <ThinkBox content={children} thinkingEnded={thinkingEnded} />
   );
 };
 
-const MessageBox = ({
-  section,
-  sectionIndex,
-  dividerRef,
-  isLast,
-}: {
-  section: Section;
-  sectionIndex: number;
-  dividerRef?: MutableRefObject<HTMLDivElement | null>;
-  isLast: boolean;
-}) => {
+const MessageBox = ({ section, sectionIndex, dividerRef, isLast }) => {
   const {
     loading,
     sendMessage,
@@ -64,8 +44,7 @@ const MessageBox = ({
   const thinkingEnded = section.thinkingEnded;
 
   const sourceBlocks = section.message.responseBlocks.filter(
-    (block): block is typeof block & { type: 'source' } =>
-      block.type === 'source',
+    (block) => block.type === 'source',
   );
 
   const sources = sourceBlocks.flatMap((block) => block.data);
@@ -74,13 +53,13 @@ const MessageBox = ({
 
   const { speechStatus, start, stop } = useSpeech({ text: speechMessage });
 
-  const markdownOverrides: MarkdownToJSX.Options = {
+  const markdownOverrides = {
     renderRule(next, node, renderChildren, state) {
-      if (node.type === RuleType.codeInline) {
+      if (node.type === 'codeInline') {
         return `\`${node.text}\``;
       }
 
-      if (node.type === RuleType.codeBlock) {
+      if (node.type === 'codeBlock') {
         return (
           <CodeBlock key={state.key} language={node.lang || ''}>
             {node.text}
@@ -130,7 +109,7 @@ const MessageBox = ({
 
           {section.message.responseBlocks
             .filter(
-              (block): block is ResearchBlock =>
+              (block) =>
                 block.type === 'research' && block.data.subSteps.length > 0,
             )
             .map((researchBlock) => (
@@ -231,8 +210,7 @@ const MessageBox = ({
                         </h3>
                       </div>
                       <div className="space-y-0">
-                        {section.suggestions.map(
-                          (suggestion: string, i: number) => (
+                        {section.suggestions.map((suggestion, i) => (
                             <div key={i}>
                               <div className="h-px bg-light-200/40 dark:bg-dark-200/40" />
                               <button

@@ -10,19 +10,8 @@ import {
 } from '@headlessui/react';
 import { Fragment, useState } from 'react';
 import { toast } from 'sonner';
-;
 
-const DeleteChat = ({
-  chatId,
-  chats,
-  setChats,
-  redirect = false,
-}: {
-  chatId: string;
-  chats: Chat[];
-  setChats: (chats: Chat[]) => void;
-  redirect?: boolean;
-}) => {
+const DeleteChat = ({ chatId, chats, setChats, redirect = false }) => {
   const [confirmationDialogOpen, setConfirmationDialogOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -47,7 +36,7 @@ const DeleteChat = ({
       if (redirect) {
         window.location.href = '/';
       }
-    } catch (err: any) {
+    } catch (err) {
       toast.error(err.message);
     } finally {
       setConfirmationDialogOpen(false);

@@ -1,5 +1,3 @@
-'use client';
-
 import { Clock, ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import {
@@ -10,62 +8,7 @@ import {
   LineSeries,
 } from 'lightweight-charts';
 
-type StockWidgetProps = {
-  symbol: string;
-  shortName: string;
-  longName?: string;
-  exchange?: string;
-  currency?: string;
-  marketState?: string;
-  regularMarketPrice?: number;
-  regularMarketChange?: number;
-  regularMarketChangePercent?: number;
-  regularMarketPreviousClose?: number;
-  regularMarketOpen?: number;
-  regularMarketDayHigh?: number;
-  regularMarketDayLow?: number;
-  regularMarketVolume?: number;
-  averageDailyVolume3Month?: number;
-  marketCap?: number;
-  fiftyTwoWeekLow?: number;
-  fiftyTwoWeekHigh?: number;
-  trailingPE?: number;
-  forwardPE?: number;
-  dividendYield?: number;
-  earningsPerShare?: number;
-  website?: string;
-  postMarketPrice?: number;
-  postMarketChange?: number;
-  postMarketChangePercent?: number;
-  preMarketPrice?: number;
-  preMarketChange?: number;
-  preMarketChangePercent?: number;
-  chartData?: {
-    '1D'?: { timestamps: number[]; prices: number[] } | null;
-    '5D'?: { timestamps: number[]; prices: number[] } | null;
-    '1M'?: { timestamps: number[]; prices: number[] } | null;
-    '3M'?: { timestamps: number[]; prices: number[] } | null;
-    '6M'?: { timestamps: number[]; prices: number[] } | null;
-    '1Y'?: { timestamps: number[]; prices: number[] } | null;
-    MAX?: { timestamps: number[]; prices: number[] } | null;
-  } | null;
-  comparisonData?: Array<{
-    ticker: string;
-    name: string;
-    chartData: {
-      '1D'?: { timestamps: number[]; prices: number[] } | null;
-      '5D'?: { timestamps: number[]; prices: number[] } | null;
-      '1M'?: { timestamps: number[]; prices: number[] } | null;
-      '3M'?: { timestamps: number[]; prices: number[] } | null;
-      '6M'?: { timestamps: number[]; prices: number[] } | null;
-      '1Y'?: { timestamps: number[]; prices: number[] } | null;
-      MAX?: { timestamps: number[]; prices: number[] } | null;
-    };
-  }> | null;
-  error?: string;
-};
-
-const formatNumber = (num: number | undefined, decimals = 2): string => {
+const formatNumber = (num, decimals = 2) => {
   if (num === undefined || num === null) return 'N/A';
   return num.toLocaleString(undefined, {
     minimumFractionDigits: decimals,
@@ -73,7 +16,7 @@ const formatNumber = (num: number | undefined, decimals = 2): string => {
   });
 };
 
-const formatLargeNumber = (num: number | undefined): string => {
+const formatLargeNumber = (num) => {
   if (num === undefined || num === null) return 'N/A';
   if (num >= 1e12) return `$${(num / 1e12).toFixed(2)}T`;
   if (num >= 1e9) return `$${(num / 1e9).toFixed(2)}B`;
@@ -82,26 +25,21 @@ const formatLargeNumber = (num: number | undefined): string => {
   return `$${num.toFixed(2)}`;
 };
 
-const Stock = (props: StockWidgetProps) => {
+const Stock = (props) => {
   const [isDarkMode, setIsDarkMode] = useState(false);
-  const [selectedTimeframe, setSelectedTimeframe] = useState<
-    '1D' | '5D' | '1M' | '3M' | '6M' | '1Y' | 'MAX'
-  >('1M');
-  const chartContainerRef = useRef<HTMLDivElement>(null);
+  const [selectedTimeframe, setSelectedTimeframe] = useState('1M');
+  const chartContainerRef = useRef(null);
 
   useEffect(() => {
     const checkDarkMode = () => {
       setIsDarkMode(document.documentElement.classList.contains('dark'));
     };
-
     checkDarkMode();
-
     const observer = new MutationObserver(checkDarkMode);
     observer.observe(document.documentElement, {
       attributes: true,
       attributeFilter: ['class'],
     });
-
     return () => observer.disconnect();
   }, []);
 
@@ -144,25 +82,15 @@ const Stock = (props: StockWidgetProps) => {
           labelVisible: true,
         },
       },
-      rightPriceScale: {
-        borderVisible: false,
-        visible: false,
-      },
-      leftPriceScale: {
-        borderVisible: false,
-        visible: true,
-      },
-      timeScale: {
-        borderVisible: false,
-        timeVisible: false,
-      },
+      rightPriceScale: { borderVisible: false, visible: false },
+      leftPriceScale: { borderVisible: false, visible: true },
+      timeScale: { borderVisible: false, timeVisible: false },
       handleScroll: false,
       handleScale: false,
     });
 
     const prices = currentChartData.prices;
-    let baselinePrice: number;
-
+    let baselinePrice;
     if (selectedTimeframe === '1D') {
       baselinePrice = props.regularMarketPreviousClose ?? prices[0];
     } else {
@@ -170,7 +98,6 @@ const Stock = (props: StockWidgetProps) => {
     }
 
     const baselineSeries = chart.addSeries(BaselineSeries);
-
     baselineSeries.applyOptions({
       baseValue: { type: 'price', price: baselinePrice },
       topLineColor: isDarkMode ? '#14b8a6' : '#0d9488',
@@ -197,7 +124,7 @@ const Stock = (props: StockWidgetProps) => {
     const data = currentChartData.timestamps.map((timestamp, index) => {
       const price = currentChartData.prices[index];
       return {
-        time: (timestamp / 1000) as any,
+        time: (timestamp / 1000),
         value: price,
       };
     });
@@ -210,7 +137,7 @@ const Stock = (props: StockWidgetProps) => {
         const compChartData = comp.chartData[selectedTimeframe];
         if (compChartData && compChartData.prices.length > 0) {
           const compData = compChartData.timestamps.map((timestamp, i) => ({
-            time: (timestamp / 1000) as any,
+            time: (timestamp / 1000),
             value: compChartData.prices[i],
           }));
 
@@ -236,7 +163,6 @@ const Stock = (props: StockWidgetProps) => {
         });
       }
     };
-
     window.addEventListener('resize', handleResize);
 
     return () => {
@@ -300,7 +226,7 @@ const Stock = (props: StockWidgetProps) => {
                   alt={`${props.symbol} logo`}
                   className="w-8 h-8 rounded-lg"
                   onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = 'none';
+                    e.target.style.display = 'none';
                   }}
                 />
               )}
@@ -349,9 +275,7 @@ const Stock = (props: StockWidgetProps) => {
                 {formatNumber(displayPrice)}
               </span>
             </div>
-            <div
-              className={`flex items-center justify-end gap-1 ${changeColor}`}
-            >
+            <div className={`flex items-center justify-end gap-1 ${changeColor}`}>
               {isPositive ? (
                 <ArrowUpRight className="w-4 h-4" />
               ) : displayChange === 0 ? (
@@ -378,7 +302,7 @@ const Stock = (props: StockWidgetProps) => {
           <div className="bg-light-secondary dark:bg-dark-secondary rounded-lg overflow-hidden">
             <div className="flex items-center justify-between p-3 border-b border-light-200 dark:border-dark-200">
               <div className="flex items-center gap-1">
-                {(['1D', '5D', '1M', '3M', '6M', '1Y', 'MAX'] as const).map(
+                {(['1D', '5D', '1M', '3M', '6M', '1Y', 'MAX']).map(
                   (timeframe) => (
                     <button
                       key={timeframe}
@@ -404,10 +328,7 @@ const Stock = (props: StockWidgetProps) => {
                   {props.comparisonData.map((comp, index) => {
                     const colors = ['#8b5cf6', '#f59e0b', '#ec4899'];
                     return (
-                      <div
-                        key={comp.ticker}
-                        className="flex items-center gap-1.5"
-                      >
+                      <div key={comp.ticker} className="flex items-center gap-1.5">
                         <div
                           className="w-2 h-2 rounded-full"
                           style={{ backgroundColor: colors[index] }}
@@ -428,83 +349,40 @@ const Stock = (props: StockWidgetProps) => {
 
             <div className="grid grid-cols-3 border-t border-light-200 dark:border-dark-200">
               <div className="flex justify-between p-3 border-r border-light-200 dark:border-dark-200">
-                <span className="text-xs text-black/50 dark:text-white/50">
-                  Prev Close
-                </span>
-                <span className="text-xs text-black dark:text-white font-medium">
-                  ${formatNumber(props.regularMarketPreviousClose)}
-                </span>
+                <span className="text-xs text-black/50 dark:text-white/50">Prev Close</span>
+                <span className="text-xs text-black dark:text-white font-medium">${formatNumber(props.regularMarketPreviousClose)}</span>
               </div>
               <div className="flex justify-between p-3 border-r border-light-200 dark:border-dark-200">
-                <span className="text-xs text-black/50 dark:text-white/50">
-                  52W Range
-                </span>
-                <span className="text-xs text-black dark:text-white font-medium">
-                  ${formatNumber(props.fiftyTwoWeekLow, 2)}-$
-                  {formatNumber(props.fiftyTwoWeekHigh, 2)}
-                </span>
+                <span className="text-xs text-black/50 dark:text-white/50">52W Range</span>
+                <span className="text-xs text-black dark:text-white font-medium">${formatNumber(props.fiftyTwoWeekLow, 2)}-${formatNumber(props.fiftyTwoWeekHigh, 2)}</span>
               </div>
               <div className="flex justify-between p-3">
-                <span className="text-xs text-black/50 dark:text-white/50">
-                  Market Cap
-                </span>
-                <span className="text-xs text-black dark:text-white font-medium">
-                  {formatLargeNumber(props.marketCap)}
-                </span>
+                <span className="text-xs text-black/50 dark:text-white/50">Market Cap</span>
+                <span className="text-xs text-black dark:text-white font-medium">{formatLargeNumber(props.marketCap)}</span>
               </div>
               <div className="flex justify-between p-3 border-t border-r border-light-200 dark:border-dark-200">
-                <span className="text-xs text-black/50 dark:text-white/50">
-                  Open
-                </span>
-                <span className="text-xs text-black dark:text-white font-medium">
-                  ${formatNumber(props.regularMarketOpen)}
-                </span>
+                <span className="text-xs text-black/50 dark:text-white/50">Open</span>
+                <span className="text-xs text-black dark:text-white font-medium">${formatNumber(props.regularMarketOpen)}</span>
               </div>
               <div className="flex justify-between p-3 border-t border-r border-light-200 dark:border-dark-200">
-                <span className="text-xs text-black/50 dark:text-white/50">
-                  P/E Ratio
-                </span>
-                <span className="text-xs text-black dark:text-white font-medium">
-                  {props.trailingPE ? formatNumber(props.trailingPE, 2) : 'N/A'}
-                </span>
+                <span className="text-xs text-black/50 dark:text-white/50">P/E Ratio</span>
+                <span className="text-xs text-black dark:text-white font-medium">{props.trailingPE ? formatNumber(props.trailingPE, 2) : 'N/A'}</span>
               </div>
               <div className="flex justify-between p-3 border-t border-light-200 dark:border-dark-200">
-                <span className="text-xs text-black/50 dark:text-white/50">
-                  Dividend Yield
-                </span>
-                <span className="text-xs text-black dark:text-white font-medium">
-                  {props.dividendYield
-                    ? `${formatNumber(props.dividendYield * 100, 2)}%`
-                    : 'N/A'}
-                </span>
+                <span className="text-xs text-black/50 dark:text-white/50">Dividend Yield</span>
+                <span className="text-xs text-black dark:text-white font-medium">{props.dividendYield ? `${formatNumber(props.dividendYield * 100, 2)}%` : 'N/A'}</span>
               </div>
               <div className="flex justify-between p-3 border-t border-r border-light-200 dark:border-dark-200">
-                <span className="text-xs text-black/50 dark:text-white/50">
-                  Day Range
-                </span>
-                <span className="text-xs text-black dark:text-white font-medium">
-                  ${formatNumber(props.regularMarketDayLow, 2)}-$
-                  {formatNumber(props.regularMarketDayHigh, 2)}
-                </span>
+                <span className="text-xs text-black/50 dark:text-white/50">Day Range</span>
+                <span className="text-xs text-black dark:text-white font-medium">${formatNumber(props.regularMarketDayLow, 2)}-${formatNumber(props.regularMarketDayHigh, 2)}</span>
               </div>
               <div className="flex justify-between p-3 border-t border-r border-light-200 dark:border-dark-200">
-                <span className="text-xs text-black/50 dark:text-white/50">
-                  Volume
-                </span>
-                <span className="text-xs text-black dark:text-white font-medium">
-                  {formatLargeNumber(props.regularMarketVolume)}
-                </span>
+                <span className="text-xs text-black/50 dark:text-white/50">Volume</span>
+                <span className="text-xs text-black dark:text-white font-medium">{formatLargeNumber(props.regularMarketVolume)}</span>
               </div>
               <div className="flex justify-between p-3 border-t border-light-200 dark:border-dark-200">
-                <span className="text-xs text-black/50 dark:text-white/50">
-                  EPS
-                </span>
-                <span className="text-xs text-black dark:text-white font-medium">
-                  $
-                  {props.earningsPerShare
-                    ? formatNumber(props.earningsPerShare, 2)
-                    : 'N/A'}
-                </span>
+                <span className="text-xs text-black/50 dark:text-white/50">EPS</span>
+                <span className="text-xs text-black dark:text-white font-medium">${props.earningsPerShare ? formatNumber(props.earningsPerShare, 2) : 'N/A'}</span>
               </div>
             </div>
           </div>

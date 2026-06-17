@@ -1,13 +1,6 @@
-import { UIConfigField } from './configTypes.js';
-import SettingsField from '../SettingsField';
+import SettingsField from '../SettingsField.js';
 
-const Search = ({
-  fields,
-  values,
-}: {
-  fields: UIConfigField[];
-  values: Record<string, any>;
-}) => {
+const Search = ({ fields, values }) => {
   return (
     <div className="flex-1 space-y-6 overflow-y-auto px-6 py-6">
       {fields.map((field) => (

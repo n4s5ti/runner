@@ -8,16 +8,16 @@ import {
   Sliders,
   ToggleRight,
 } from 'lucide-react';
-import Preferences from './Sections/Preferences';
+import Preferences from './Sections/Preferences.js';
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
-import { toast } from 'sonner';
-import Loader from '../ui/Loader';
-import { cn } from '../utils.js';
-import Models from './Sections/Models/Section';
-import SearchSection from './Sections/Search';
-import Select from '../ui/Select';
-import Personalization from './Sections/Personalization';
+import Loader from '../ui/Loader.js';
+import { cn } from '../../utils.js';
+import Models from './Sections/Models/Section.js';
+import SearchSection from './Sections/Search.js';
+import Select from '../ui/Select.js';
+import Personalization from './Sections/Personalization.js';
+import { useChat } from '../../hooks/useChatRunner.js';
 
 const sections = [
   {
@@ -54,47 +54,15 @@ const sections = [
   },
 ];
 
-const SettingsDialogue = ({
-  isOpen,
-  setIsOpen,
-}: {
-  isOpen: boolean;
-  setIsOpen: (active: boolean) => void;
-}) => {
-  const [isLoading, setIsLoading] = useState(true);
-  const [config, setConfig] = useState<any>(null);
-  const [activeSection, setActiveSection] = useState<string>(sections[0].key);
+const SettingsDialogue = ({ isOpen, setIsOpen }) => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [activeSection, setActiveSection] = useState(sections[0].key);
   const [selectedSection, setSelectedSection] = useState(sections[0]);
+  const { config } = useChat();
 
   useEffect(() => {
-    setSelectedSection(sections.find((s) => s.key === activeSection)!);
+    setSelectedSection(sections.find((s) => s.key === activeSection));
   }, [activeSection]);
-
-  useEffect(() => {
-    if (isOpen) {
-      const fetchConfig = async () => {
-        try {
-          const res = await fetch('/api/config', {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          });
-
-          const data = await res.json();
-
-          setConfig(data);
-        } catch (error) {
-          console.error('Error fetching config:', error);
-          toast.error('Failed to load configuration.');
-        } finally {
-          setIsLoading(false);
-        }
-      };
-
-      fetchConfig();
-    }
-  }, [isOpen]);
 
   return (
     <Dialog
@@ -151,7 +119,7 @@ const SettingsDialogue = ({
                 </div>
                 <div className="flex flex-col space-y-1 py-[18px] px-2">
                   <p className="text-xs text-black/70 dark:text-white/70">
-                    Version: {process.env.NEXT_PUBLIC_VERSION}
+                    Version: 1.0.0
                   </p>
                   <a
                     href="https://github.com/itzcrazykns/vane"
@@ -204,8 +172,8 @@ const SettingsDialogue = ({
                     </div>
                     <div className="flex-1 overflow-y-auto">
                       <selectedSection.component
-                        fields={config.fields[selectedSection.dataAdd]}
-                        values={config.values[selectedSection.dataAdd]}
+                        fields={[]}
+                        values={config || {}}
                       />
                     </div>
                   </div>

@@ -1,13 +1,6 @@
-'use client';
-
 import { Calculator, Equal } from 'lucide-react';
 
-type CalculationWidgetProps = {
-  expression: string;
-  result: number;
-};
-
-const Calculation = ({ expression, result }: CalculationWidgetProps) => {
+const Calculation = ({ expression, result }) => {
   return (
     <div className="rounded-lg border border-light-200 dark:border-dark-200">
       <div className="p-4 space-y-4">

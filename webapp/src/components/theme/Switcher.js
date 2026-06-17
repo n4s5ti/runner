@@ -1,18 +1,15 @@
-'use client';
-import { useTheme } from 'next-themes';
+import { useTheme } from './Provider';
 import { useCallback, useEffect, useState } from 'react';
 import Select from '../ui/Select';
 
-type Theme = 'dark' | 'light' | 'system';
-
-const ThemeSwitcher = ({ className }: { className?: string }) => {
+const ThemeSwitcher = ({ className }) => {
   const [mounted, setMounted] = useState(false);
 
   const { theme, setTheme } = useTheme();
 
-  const isTheme = useCallback((t: Theme) => t === theme, [theme]);
+  const isTheme = useCallback((t) => t === theme, [theme]);
 
-  const handleThemeSwitch = (theme: Theme) => {
+  const handleThemeSwitch = (theme) => {
     setTheme(theme);
   };
 
@@ -26,8 +23,8 @@ const ThemeSwitcher = ({ className }: { className?: string }) => {
         '(prefers-color-scheme: dark)',
       );
 
-      const detectThemeChange = (event: MediaQueryListEvent) => {
-        const theme: Theme = event.matches ? 'dark' : 'light';
+      const detectThemeChange = (event) => {
+        const theme = event.matches ? 'dark' : 'light';
         setTheme(theme);
       };
 
@@ -48,7 +45,7 @@ const ThemeSwitcher = ({ className }: { className?: string }) => {
     <Select
       className={className}
       value={theme}
-      onChange={(e) => handleThemeSwitch(e.target.value as Theme)}
+      onChange={(e) => handleThemeSwitch(e.target.value)}
       options={[
         { value: 'light', label: 'Light' },
         { value: 'dark', label: 'Dark' },

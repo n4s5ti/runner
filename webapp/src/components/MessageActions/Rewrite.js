@@ -1,12 +1,6 @@
-import { ArrowLeftRight, Repeat } from 'lucide-react';
+import { Repeat } from 'lucide-react';
 
-const Rewrite = ({
-  rewrite,
-  messageId,
-}: {
-  rewrite: (messageId: string) => void;
-  messageId: string;
-}) => {
+const Rewrite = ({ rewrite, messageId }) => {
   return (
     <button
       onClick={() => rewrite(messageId)}
@@ -15,6 +9,4 @@ const Rewrite = ({
       <Repeat size={16} />
     </button>
   );
-};
-1;
 export default Rewrite;

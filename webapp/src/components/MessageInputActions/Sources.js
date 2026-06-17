@@ -1,4 +1,3 @@
-import { useChat } from '../hooks/useChatRunner.js';
 import {
   Popover,
   PopoverButton,
@@ -10,6 +9,7 @@ import {
   GraduationCapIcon,
   NetworkIcon,
 } from '@phosphor-icons/react';
+import { useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 
 const sourcesList = [
@@ -31,7 +31,7 @@ const sourcesList = [
 ];
 
 const Sources = () => {
-  const { sources, setSources } = useChat();
+  const [sources, setSources] = useState(['web']);
 
   return (
     <Popover className="relative">

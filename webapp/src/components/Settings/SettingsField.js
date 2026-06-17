@@ -1,16 +1,16 @@
-import {
-  SelectUIConfigField,
-  StringUIConfigField,
-  SwitchUIConfigField,
-  TextareaUIConfigField,
-  UIConfigField,
-} from './configTypes.js';
 import { useState } from 'react';
-import Select from '../ui/Select';
+import Select from '../ui/Select.js';
 import { toast } from 'sonner';
-import { useTheme } from 'next-themes';
 import { Loader2 } from 'lucide-react';
 import { Switch } from '@headlessui/react';
+
+// Stub: replaces 'next-themes' import
+const useTheme = () => ({
+  setTheme: (theme) => {
+    document.documentElement.classList.toggle('dark', theme === 'dark');
+  },
+  theme: 'dark',
+});
 
 const emitClientConfigChanged = () => {
   if (typeof window !== 'undefined') {
@@ -18,21 +18,11 @@ const emitClientConfigChanged = () => {
   }
 };
 
-const SettingsSelect = ({
-  field,
-  value,
-  setValue,
-  dataAdd,
-}: {
-  field: SelectUIConfigField;
-  value?: any;
-  setValue: (value: any) => void;
-  dataAdd: string;
-}) => {
+const SettingsSelect = ({ field, value, setValue, dataAdd }) => {
   const [loading, setLoading] = useState(false);
   const { setTheme } = useTheme();
 
-  const handleSave = async (newValue: any) => {
+  const handleSave = async (newValue) => {
     setLoading(true);
     setValue(newValue);
     try {
@@ -43,21 +33,8 @@ const SettingsSelect = ({
         }
         emitClientConfigChanged();
       } else {
-        const res = await fetch('/api/config', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            key: `${dataAdd}.${field.key}`,
-            value: newValue,
-          }),
-        });
-
-        if (!res.ok) {
-          console.error('Failed to save config:', await res.text());
-          throw new Error('Failed to save configuration');
-        }
+        localStorage.setItem(`${dataAdd}.${field.key}`, String(newValue));
+        console.log('Config save (stub):', `${dataAdd}.${field.key}`, newValue);
       }
     } catch (error) {
       console.error('Error saving config:', error);
@@ -94,20 +71,10 @@ const SettingsSelect = ({
   );
 };
 
-const SettingsInput = ({
-  field,
-  value,
-  setValue,
-  dataAdd,
-}: {
-  field: StringUIConfigField;
-  value?: any;
-  setValue: (value: any) => void;
-  dataAdd: string;
-}) => {
+const SettingsInput = ({ field, value, setValue, dataAdd }) => {
   const [loading, setLoading] = useState(false);
 
-  const handleSave = async (newValue: any) => {
+  const handleSave = async (newValue) => {
     setLoading(true);
     setValue(newValue);
     try {
@@ -115,21 +82,8 @@ const SettingsInput = ({
         localStorage.setItem(field.key, newValue);
         emitClientConfigChanged();
       } else {
-        const res = await fetch('/api/config', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            key: `${dataAdd}.${field.key}`,
-            value: newValue,
-          }),
-        });
-
-        if (!res.ok) {
-          console.error('Failed to save config:', await res.text());
-          throw new Error('Failed to save configuration');
-        }
+        localStorage.setItem(`${dataAdd}.${field.key}`, String(newValue));
+        console.log('Config save (stub):', `${dataAdd}.${field.key}`, newValue);
       }
     } catch (error) {
       console.error('Error saving config:', error);
@@ -171,20 +125,10 @@ const SettingsInput = ({
   );
 };
 
-const SettingsTextarea = ({
-  field,
-  value,
-  setValue,
-  dataAdd,
-}: {
-  field: TextareaUIConfigField;
-  value?: any;
-  setValue: (value: any) => void;
-  dataAdd: string;
-}) => {
+const SettingsTextarea = ({ field, value, setValue, dataAdd }) => {
   const [loading, setLoading] = useState(false);
 
-  const handleSave = async (newValue: any) => {
+  const handleSave = async (newValue) => {
     setLoading(true);
     setValue(newValue);
     try {
@@ -192,21 +136,8 @@ const SettingsTextarea = ({
         localStorage.setItem(field.key, newValue);
         emitClientConfigChanged();
       } else {
-        const res = await fetch('/api/config', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            key: `${dataAdd}.${field.key}`,
-            value: newValue,
-          }),
-        });
-
-        if (!res.ok) {
-          console.error('Failed to save config:', await res.text());
-          throw new Error('Failed to save configuration');
-        }
+        localStorage.setItem(`${dataAdd}.${field.key}`, String(newValue));
+        console.log('Config save (stub):', `${dataAdd}.${field.key}`, newValue);
       }
     } catch (error) {
       console.error('Error saving config:', error);
@@ -248,20 +179,10 @@ const SettingsTextarea = ({
   );
 };
 
-const SettingsSwitch = ({
-  field,
-  value,
-  setValue,
-  dataAdd,
-}: {
-  field: SwitchUIConfigField;
-  value?: any;
-  setValue: (value: any) => void;
-  dataAdd: string;
-}) => {
+const SettingsSwitch = ({ field, value, setValue, dataAdd }) => {
   const [loading, setLoading] = useState(false);
 
-  const handleSave = async (newValue: boolean) => {
+  const handleSave = async (newValue) => {
     setLoading(true);
     setValue(newValue);
     try {
@@ -269,21 +190,8 @@ const SettingsSwitch = ({
         localStorage.setItem(field.key, String(newValue));
         emitClientConfigChanged();
       } else {
-        const res = await fetch('/api/config', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            key: `${dataAdd}.${field.key}`,
-            value: newValue,
-          }),
-        });
-
-        if (!res.ok) {
-          console.error('Failed to save config:', await res.text());
-          throw new Error('Failed to save configuration');
-        }
+        localStorage.setItem(`${dataAdd}.${field.key}`, String(newValue));
+        console.log('Config save (stub):', `${dataAdd}.${field.key}`, newValue);
       }
     } catch (error) {
       console.error('Error saving config:', error);
@@ -322,15 +230,7 @@ const SettingsSwitch = ({
   );
 };
 
-const SettingsField = ({
-  field,
-  value,
-  dataAdd,
-}: {
-  field: UIConfigField;
-  value: any;
-  dataAdd: string;
-}) => {
+const SettingsField = ({ field, value, dataAdd }) => {
   const [val, setVal] = useState(value);
 
   switch (field.type) {

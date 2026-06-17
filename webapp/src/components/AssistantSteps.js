@@ -1,5 +1,3 @@
-'use client';
-
 import {
   Brain,
   Search,
@@ -10,10 +8,9 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect, useState } from 'react';
-import { ResearchBlock, ResearchBlockSubStep } from '../types.js';
 import { useChat } from '../hooks/useChatRunner.js';
 
-const getStepIcon = (step: ResearchBlockSubStep) => {
+const getStepIcon = (step) => {
   if (step.type === 'reasoning') {
     return <Brain className="w-4 h-4" />;
   } else if (step.type === 'searching' || step.type === 'upload_searching') {
@@ -30,10 +27,7 @@ const getStepIcon = (step: ResearchBlockSubStep) => {
   return null;
 };
 
-const getStepTitle = (
-  step: ResearchBlockSubStep,
-  isStreaming: boolean,
-): string => {
+const getStepTitle = (step, isStreaming) => {
   if (step.type === 'reasoning') {
     return isStreaming && !step.reasoning ? 'Thinking...' : 'Thinking';
   } else if (step.type === 'searching') {
@@ -51,15 +45,7 @@ const getStepTitle = (
   return 'Processing';
 };
 
-const AssistantSteps = ({
-  block,
-  status,
-  isLast,
-}: {
-  block: ResearchBlock;
-  status: 'answering' | 'completed' | 'error';
-  isLast: boolean;
-}) => {
+const AssistantSteps = ({ block, status, isLast }) => {
   const [isExpanded, setIsExpanded] = useState(
     isLast && status === 'answering' ? true : false,
   );

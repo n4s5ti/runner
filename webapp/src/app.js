@@ -176,7 +176,7 @@ function ChatWindow() {
         ? h('div', { className: 'vn-loading' }, h('div', { className: 'vn-spinner' }),
             ` Researching (${config.mode} mode, ${config.provider}) — may take 30-120s...`)
         : h('div', { className: 'vn-answer',
-            dangerouslySetInnerHTML: { __html: marked.parse(section.parsedText || '') || '' } }),
+            dangerouslySetInnerHTML: { __html: window.marked.parse(section.parsedText || '') || '' } }),
     );
   }
 

@@ -1,13 +1,8 @@
 import { cn } from '../utils.js';
 import { Loader2, ChevronDown } from 'lucide-react';
-import { SelectHTMLAttributes, forwardRef } from 'react';
+import { forwardRef } from 'react';
 
-interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
-  options: { value: any; label: string; disabled?: boolean }[];
-  loading?: boolean;
-}
-
-export const Select = forwardRef<HTMLSelectElement, SelectProps>(
+export const Select = forwardRef(
   ({ className, options, loading = false, disabled, ...restProps }, ref) => {
     return (
       <div

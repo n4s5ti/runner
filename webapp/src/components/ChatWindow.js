@@ -1,40 +1,15 @@
-'use client';
-
 import Navbar from './Navbar';
 import Chat from './Chat';
 import EmptyChat from './EmptyChat';
-import NextError from './NextError.jsx';
 import { useChat } from '../hooks/useChatRunner.js';
 import SettingsButtonMobile from './Settings/SettingsButtonMobile';
-import { Block } from '../types.js';
 import Loader from './ui/Loader';
 
-export interface BaseMessage {
-  chatId: string;
-  messageId: string;
-  createdAt: Date;
-}
-
-export interface Message extends BaseMessage {
-  backendId: string;
-  query: string;
-  responseBlocks: Block[];
-  status: 'answering' | 'completed' | 'error';
-}
-
-export interface File {
-  fileName: string;
-  fileExtension: string;
-  fileId: string;
-}
-
-export interface Widget {
-  widgetType: string;
-  params: Record<string, any>;
-}
-
 const ChatWindow = () => {
-  const { hasError, notFound, messages, isReady } = useChat();
+  const { error, ready, messages, chatIdRef } = useChat();
+  const hasError = error != null;
+  const isReady = ready;
+  const notFound = ready && chatIdRef.current && messages.length === 0;
 
   if (hasError) {
     return (
@@ -53,7 +28,14 @@ const ChatWindow = () => {
 
   return isReady ? (
     notFound ? (
-      <NextError statusCode={404} />
+      <div className="flex flex-col items-center justify-center min-h-screen">
+        <h1 className="text-4xl font-bold text-black/30 dark:text-white/30">
+          404
+        </h1>
+        <p className="mt-2 dark:text-white/70 text-black/70 text-sm">
+          Chat not found.
+        </p>
+      </div>
     ) : (
       <div>
         {messages.length > 0 ? (

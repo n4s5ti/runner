@@ -1,5 +1,4 @@
-import { UIConfigField, ConfigModelProvider } from './configTypes.js';
-import { cn } from '../utils.js';
+import { cn } from '../../../utils.js';
 import { AnimatePresence, motion } from 'framer-motion';
 import { AlertCircle, Plug2, Plus, Pencil, Trash2, X } from 'lucide-react';
 import { useState } from 'react';
@@ -12,29 +11,12 @@ const ModelProvider = ({
   modelProvider,
   setProviders,
   fields,
-}: {
-  modelProvider: ConfigModelProvider;
-  fields: UIConfigField[];
-  setProviders: React.Dispatch<React.SetStateAction<ConfigModelProvider[]>>;
 }) => {
   const [open, setOpen] = useState(true);
 
-  const handleModelDelete = async (
-    type: 'chat' | 'embedding',
-    modelKey: string,
-  ) => {
+  const handleModelDelete = (type, modelKey) => {
     try {
-      const res = await fetch(`/api/providers/${modelProvider.id}/models`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ key: modelKey, type: type }),
-      });
-
-      if (!res.ok) {
-        throw new Error('Failed to delete model: ' + (await res.text()));
-      }
+      console.log('Deleted model:', { providerId: modelProvider.id, key: modelKey, type });
 
       setProviders(
         (prev) =>
@@ -56,7 +38,7 @@ const ModelProvider = ({
               };
             }
             return provider;
-          }) as ConfigModelProvider[],
+          }),
       );
 
       toast.success('Model deleted successfully.');

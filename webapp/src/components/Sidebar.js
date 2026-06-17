@@ -1,34 +1,20 @@
-'use client';
-
 import { cn } from '../utils.js';
 import {
   BookOpenText,
   Home,
   Search,
-  SquarePen,
   Settings,
   Plus,
-  ArrowLeft,
 } from 'lucide-react';
-import Link from './Link.jsx';
-import { useSelectedLayoutSegments } from './Navigation.jsx';
-import React, { useState, type ReactNode } from 'react';
+import { useState } from 'react';
 import Layout from './Layout';
-import {
-  Description,
-  Dialog,
-  DialogPanel,
-  DialogTitle,
-} from '@headlessui/react';
 import SettingsButton from './Settings/SettingsButton';
 
-const VerticalIconContainer = ({ children }: { children: ReactNode }) => {
-  return <div className="flex flex-col items-center w-full">{children}</div>;
-};
-
-const Sidebar = ({ children }: { children: React.ReactNode }) => {
-  const segments = useSelectedLayoutSegments();
-  const [isOpen, setIsOpen] = useState<boolean>(true);
+const Sidebar = ({ children }) => {
+  const pathname =
+    typeof window !== 'undefined' ? window.location.pathname : '';
+  const segments = pathname.split('/').filter(Boolean);
+  const [isOpen, setIsOpen] = useState(true);
 
   const navLinks = [
     {
@@ -61,9 +47,9 @@ const Sidebar = ({ children }: { children: React.ReactNode }) => {
           >
             <Plus size={19} className="cursor-pointer" />
           </a>
-          <VerticalIconContainer>
+          <div className="flex flex-col items-center w-full">
             {navLinks.map((link, i) => (
-              <Link
+              <a
                 key={i}
                 href={link.href}
                 className={cn(
@@ -97,9 +83,9 @@ const Sidebar = ({ children }: { children: React.ReactNode }) => {
                 >
                   {link.label}
                 </p>
-              </Link>
+              </a>
             ))}
-          </VerticalIconContainer>
+          </div>
 
           <SettingsButton />
         </div>
@@ -107,7 +93,7 @@ const Sidebar = ({ children }: { children: React.ReactNode }) => {
 
       <div className="fixed bottom-0 w-full z-50 flex flex-row items-center gap-x-6 bg-light-secondary dark:bg-dark-secondary px-4 py-4 shadow-sm lg:hidden">
         {navLinks.map((link, i) => (
-          <Link
+          <a
             href={link.href}
             key={i}
             className={cn(
@@ -122,7 +108,7 @@ const Sidebar = ({ children }: { children: React.ReactNode }) => {
             )}
             <link.icon />
             <p className="text-xs">{link.label}</p>
-          </Link>
+          </a>
         ))}
       </div>
 

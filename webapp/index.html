@@ -138,12 +138,16 @@
       .vn-main { padding: 16px 12px 100px; }
     }
   </style>
+  <!-- Suppress AMD to prevent UMD wrappers from hijacking globals -->
+  <script>window.__amdDefine=window.define;window.define=undefined;</script>
   <!-- Dependencies from CDN -->
   <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin></script>
-  <script src="https://unpkg.com/dexie@4.0.8/dist/dexie.min.mjs" type="module"></script>
-  <script src="https://unpkg.com/fflate@0.8.2/umd/index.min.js"></script>
+  <script src="https://unpkg.com/dexie@4.0.8/dist/dexie.min.js"></script>
+  <script src="https://unpkg.com/fflate@0.8.2/umd/index.js"></script>
   <script src="https://unpkg.com/marked@12.0.2/marked.min.js"></script>
+  <!-- Restore AMD -->
+  <script>window.define=window.__amdDefine;window.__amdDefine=undefined;</script>
 </head>
 <body>
   <div id="root">

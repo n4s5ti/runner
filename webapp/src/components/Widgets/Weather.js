@@ -1,40 +1,15 @@
-'use client';
-
-import { getMeasurementUnit } from '../config.js';
 import { Wind, Droplets, Gauge } from 'lucide-react';
 import { useMemo, useEffect, useState } from 'react';
 
-type WeatherWidgetProps = {
-  location: string;
-  current: {
-    time: string;
-    temperature_2m: number;
-    relative_humidity_2m: number;
-    apparent_temperature: number;
-    is_day: number;
-    precipitation: number;
-    weather_code: number;
-    wind_speed_10m: number;
-    wind_direction_10m: number;
-    wind_gusts_10m?: number;
-  };
-  daily: {
-    time: string[];
-    weather_code: number[];
-    temperature_2m_max: number[];
-    temperature_2m_min: number[];
-    precipitation_probability_max: number[];
-  };
-  timezone: string;
+const getMeasurementUnit = () => {
+  if (typeof window !== 'undefined') return localStorage.getItem('measureUnit') || 'metric';
+  return 'metric';
 };
 
-const getWeatherInfo = (code: number, isDay: boolean, isDarkMode: boolean) => {
+const getWeatherInfo = (code, isDay, isDarkMode) => {
   const dayNight = isDay ? 'day' : 'night';
 
-  const weatherMap: Record<
-    number,
-    { icon: string; description: string; gradient: string }
-  > = {
+  const weatherMap = {
     0: {
       icon: `clear-${dayNight}.svg`,
       description: 'Clear',
@@ -220,24 +195,19 @@ const getWeatherInfo = (code: number, isDay: boolean, isDarkMode: boolean) => {
   return weatherMap[code] || weatherMap[0];
 };
 
-const Weather = ({
-  location,
-  current,
-  daily,
-  timezone,
-}: WeatherWidgetProps) => {
+const Weather = ({ location, current, daily, timezone }) => {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const unit = getMeasurementUnit();
   const isImperial = unit === 'imperial';
   const tempUnitLabel = isImperial ? '°F' : '°C';
   const windUnitLabel = isImperial ? 'mph' : 'km/h';
 
-  const formatTemp = (celsius: number) => {
+  const formatTemp = (celsius) => {
     if (!Number.isFinite(celsius)) return 0;
     return Math.round(isImperial ? (celsius * 9) / 5 + 32 : celsius);
   };
 
-  const formatWind = (speedKmh: number) => {
+  const formatWind = (speedKmh) => {
     if (!Number.isFinite(speedKmh)) return 0;
     return Math.round(isImperial ? speedKmh * 0.621371 : speedKmh);
   };

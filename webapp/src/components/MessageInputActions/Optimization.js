@@ -7,7 +7,7 @@ import {
   Transition,
 } from '@headlessui/react';
 import { Fragment } from 'react';
-import { useChat } from '../hooks/useChatRunner.js';
+import { useChat } from '../../hooks/useChatRunner.js';
 import { AnimatePresence, motion } from 'motion/react';
 
 const OptimizationModes = [
@@ -37,7 +37,9 @@ const OptimizationModes = [
 ];
 
 const Optimization = () => {
-  const { optimizationMode, setOptimizationMode } = useChat();
+  const { config, setConfig } = useChat();
+  const optimizationMode = config.mode || 'balanced';
+  const setOptimizationMode = (mode) => setConfig({ ...config, mode });
 
   return (
     <Popover className="relative w-full max-w-[15rem] md:max-w-md lg:max-w-lg">

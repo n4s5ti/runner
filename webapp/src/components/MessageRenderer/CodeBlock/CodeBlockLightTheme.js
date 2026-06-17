@@ -1,5 +1,3 @@
-import type { CSSProperties } from 'react';
-
 const lightTheme = {
   'hljs-comment': {
     color: '#6e7781',
@@ -83,13 +81,8 @@ const lightTheme = {
     color: '#6f42c1',
   },
   hljs: {
-    display: 'block',
-    overflowX: 'auto',
-    background: '#ffffff',
     color: '#24292f',
-    padding: '0.75em',
-    border: '1px solid #e8edf1',
-    borderRadius: '10px',
+    background: '#ffffff',
   },
   'hljs-emphasis': {
     fontStyle: 'italic',
@@ -97,6 +90,6 @@ const lightTheme = {
   'hljs-strong': {
     fontWeight: 'bold',
   },
-} satisfies Record<string, CSSProperties>;
+};
 
 export default lightTheme;

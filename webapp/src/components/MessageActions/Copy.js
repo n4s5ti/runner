@@ -1,16 +1,7 @@
 import { Check, ClipboardList } from 'lucide-react';
-import { Message } from '../ChatWindow';
 import { useState } from 'react';
-import { Section } from '../hooks/useChatRunner.js';
-import { SourceBlock } from '../types.js';
 
-const Copy = ({
-  section,
-  initialMessage,
-}: {
-  section: Section;
-  initialMessage: string;
-}) => {
+const Copy = ({ section, initialMessage }) => {
   const [copied, setCopied] = useState(false);
 
   return (
@@ -18,7 +9,7 @@ const Copy = ({
       onClick={() => {
         const sources = section.message.responseBlocks.filter(
           (b) => b.type === 'source' && b.data.length > 0,
-        ) as SourceBlock[];
+        );
 
         const contentToCopy = `${initialMessage}${
           sources.length > 0

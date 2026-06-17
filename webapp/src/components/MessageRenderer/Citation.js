@@ -1,10 +1,4 @@
-const Citation = ({
-  href,
-  children,
-}: {
-  href: string;
-  children: React.ReactNode;
-}) => {
+const Citation = ({ href, children }) => {
   return (
     <a
       href={href}

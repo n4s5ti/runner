@@ -10,13 +10,12 @@ import ModelSelector from './MessageInputActions/ChatModelSelector';
 const EmptyChatMessageInput = () => {
   const { sendMessage } = useChat();
 
-  /* const [copilotEnabled, setCopilotEnabled] = useState(false); */
   const [message, setMessage] = useState('');
 
-  const inputRef = useRef<HTMLTextAreaElement | null>(null);
+  const inputRef = useRef(null);
 
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
+    const handleKeyDown = (e) => {
       const activeElement = document.activeElement;
 
       const isInputFocused =

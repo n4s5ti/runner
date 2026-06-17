@@ -1,19 +1,18 @@
-'use client';
-
 import { Cpu, Loader2, Search } from 'lucide-react';
 import { cn } from '../utils.js';
 import { Popover, PopoverButton, PopoverPanel } from '@headlessui/react';
 import { useEffect, useMemo, useState } from 'react';
-import { MinimalProvider } from './modelTypes.js';
-import { useChat } from '../hooks/useChatRunner.js';
 import { AnimatePresence, motion } from 'motion/react';
 
 const ModelSelector = () => {
-  const [providers, setProviders] = useState<MinimalProvider[]>([]);
+  const [providers, setProviders] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const { setChatModelProvider, chatModelProvider } = useChat();
+  const [chatModelProvider, setChatModelProvider] = useState(() => ({
+    providerId: localStorage.getItem('chatModelProviderId') || '',
+    key: localStorage.getItem('chatModelKey') || '',
+  }));
 
   useEffect(() => {
     const loadProviders = async () => {
@@ -25,7 +24,7 @@ const ModelSelector = () => {
           throw new Error('Failed to fetch providers');
         }
 
-        const data: { providers: MinimalProvider[] } = await res.json();
+      const data = await res.json();
         setProviders(data.providers);
       } catch (error) {
         console.error('Error loading providers:', error);
@@ -56,10 +55,10 @@ const ModelSelector = () => {
     return [selectedProvider, ...remainingProviders];
   }, [providers, chatModelProvider]);
 
-  const handleModelSelect = (providerId: string, modelKey: string) => {
-    setChatModelProvider({ providerId, key: modelKey });
+  const handleModelSelect = (providerId, modelKey) => {
     localStorage.setItem('chatModelProviderId', providerId);
     localStorage.setItem('chatModelKey', modelKey);
+    setChatModelProvider({ providerId, key: modelKey });
   };
 
   const filteredProviders = orderedProviders

@@ -1,10 +1,9 @@
 import React from 'react';
-import { Widget } from '../ChatWindow';
 import Weather from './Weather';
 import Calculation from './Calculation';
 import Stock from './Stock';
 
-const Renderer = ({ widgets }: { widgets: Widget[] }) => {
+const Renderer = ({ widgets }) => {
   return widgets.map((widget, index) => {
     switch (widget.widgetType) {
       case 'weather':
