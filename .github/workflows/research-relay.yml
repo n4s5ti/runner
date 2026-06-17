@@ -1,0 +1,215 @@
+name: research-relay
+
+"on":
+  workflow_dispatch:
+    inputs:
+      query:
+        description: Research query
+        required: true
+        type: string
+      mode:
+        description: Processing mode
+        required: false
+        default: balanced
+        type: choice
+        options:
+          - speed
+          - balanced
+          - quality
+      provider:
+        description: LLM provider (ollama uses in-runner model; others require PROVIDER_KEY secret)
+        required: false
+        default: ollama
+        type: string
+      model:
+        description: Model name override (default per mode/provider)
+        required: false
+        default: llama3.2:3b
+        type: string
+      sources:
+        description: Search sources
+        required: false
+        default: web
+        type: string
+      callback_url:
+        description: HTTPS endpoint that receives result JSON (omit for artifact upload)
+        required: false
+        type: string
+      system_instructions:
+        description: System instructions for the model
+        required: false
+        type: string
+      temperature:
+        description: Model temperature, 0.0 through 2.0
+        required: false
+        default: "0.2"
+        type: string
+      top_n:
+        description: Number of search results to include, 1 through 10
+        required: false
+        default: "5"
+        type: string
+  repository_dispatch:
+    types: [research-relay-request]
+
+permissions:
+  contents: read
+
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    services:
+      searxng:
+        image: searxng/searxng:latest
+        ports:
+          - 8080:8080
+        volumes:
+          - ${{ github.workspace }}/searxng-config:/etc/searxng
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          path: source
+
+      - name: Install SearXNG settings
+        run: |
+          sudo mkdir -p "$GITHUB_WORKSPACE/searxng-config"
+          sudo cp "$GITHUB_WORKSPACE/source/config/searxng/settings.yml" "$GITHUB_WORKSPACE/searxng-config/settings.yml"
+          sudo chmod 0644 "$GITHUB_WORKSPACE/searxng-config/settings.yml"
+          docker restart "${{ job.services.searxng.id }}"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Resolve request
+        id: request
+        run: |
+          python - <<'PY'
+          import json, os
+
+          event_path = os.environ["GITHUB_EVENT_PATH"]
+          event_name = os.environ.get("GITHUB_EVENT_NAME", "")
+          output_path = os.environ["GITHUB_OUTPUT"]
+
+          with open(event_path) as f:
+              event = json.load(f)
+
+          if event_name == "repository_dispatch" or "client_payload" in event:
+              payload = event.get("client_payload", {})
+          else:
+              payload = event.get("inputs", {})
+
+          if not isinstance(payload, dict):
+              payload = {}
+
+          def get_str(key, default=""):
+              return str(payload.get(key) or default).strip()
+
+          query = get_str("query")
+          if not query:
+              raise SystemExit("query is required")
+          mode = get_str("mode", "balanced")
+          provider = get_str("provider", "ollama")
+          model = get_str("model", "llama3.2:3b")
+          sources = get_str("sources", "web")
+          callback_url = get_str("callback_url")
+          system_instructions = get_str("system_instructions")
+          temperature = get_str("temperature", "0.2")
+          top_n = get_str("top_n", "5")
+          has_callback = "true" if callback_url else "false"
+
+          with open(output_path, "a") as out:
+              for key, val in [
+                  ("query", query),
+                  ("mode", mode),
+                  ("provider", provider),
+                  ("model", model),
+                  ("sources", sources),
+                  ("callback_url", callback_url),
+                  ("system_instructions", system_instructions),
+                  ("temperature", temperature),
+                  ("top_n", top_n),
+                  ("has_callback", has_callback),
+              ]:
+                  out.write(f"{key}<<EOF\n{val}\nEOF\n")
+
+          print("request resolved")
+          PY
+
+      - name: Wait for SearXNG
+        run: |
+          python - <<'PY'
+          import time
+          from urllib.request import urlopen
+          for attempt in range(60):
+              try:
+                  with urlopen('http://127.0.0.1:8080/', timeout=2) as response:
+                      if response.status < 500:
+                          print('SearXNG is reachable')
+                          raise SystemExit(0)
+              except Exception:
+                  time.sleep(2)
+          raise SystemExit('SearXNG did not become reachable')
+          PY
+
+      - name: Set up Ollama
+        uses: ai-action/setup-ollama@v2
+
+      - name: Pull model
+        run: ollama pull "${{ steps.request.outputs.model }}"
+
+      - name: Run research
+        run: python source/scripts/vane_relay.py
+        env:
+          QUERY: ${{ steps.request.outputs.query }}
+          MODE: ${{ steps.request.outputs.mode }}
+          PROVIDER: ${{ steps.request.outputs.provider }}
+          PROVIDER_KEY: ${{ secrets.PROVIDER_KEY }}
+          MODEL: ${{ steps.request.outputs.model }}
+          SOURCES: ${{ steps.request.outputs.sources }}
+          CALLBACK_URL: ${{ steps.request.outputs.callback_url }}
+          SYSTEM_INSTRUCTIONS: ${{ steps.request.outputs.system_instructions }}
+          TEMPERATURE: ${{ steps.request.outputs.temperature }}
+          TOP_N: ${{ steps.request.outputs.top_n }}
+          SEARXNG_URL: http://127.0.0.1:8080
+
+      - name: Remove SearXNG container
+        if: always()
+        run: docker rm --force "${{ job.services.searxng.id }}"
+
+      - name: Upload result artifact
+        if: steps.request.outputs.has_callback != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: relay-result-${{ github.run_id }}
+          path: result.json
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Post result
+        if: steps.request.outputs.has_callback == 'true'
+        run: |
+          python - <<'PY'
+          import os, sys
+          from urllib.request import Request, urlopen
+
+          url = os.environ["CALLBACK_URL"]
+          with open("result.json", "rb") as f:
+              data = f.read()
+
+          req = Request(url, data=data, headers={"Content-Type": "application/json"}, method="POST")
+          try:
+              with urlopen(req, timeout=30) as resp:
+                  if resp.status >= 400:
+                      print(f"Server responded with status {resp.status}", file=sys.stderr)
+                      sys.exit(1)
+          except Exception as e:
+              print(f"Failed to post result: {e}", file=sys.stderr)
+              sys.exit(1)
+          print("result posted")
+          PY
+        env:
+          CALLBACK_URL: ${{ steps.request.outputs.callback_url }}
