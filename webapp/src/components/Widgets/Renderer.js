@@ -1,8 +1,10 @@
+import React from 'react';
+import { Widget } from '../ChatWindow';
 import Weather from './Weather';
 import Calculation from './Calculation';
 import Stock from './Stock';
 
-const Renderer = ({ widgets }) => {
+const Renderer = ({ widgets }: { widgets: Widget[] }) => {
   return widgets.map((widget, index) => {
     switch (widget.widgetType) {
       case 'weather':
@@ -35,8 +37,12 @@ const Renderer = ({ widgets }) => {
             marketState={widget.params.marketState}
             regularMarketPrice={widget.params.regularMarketPrice}
             regularMarketChange={widget.params.regularMarketChange}
-            regularMarketChangePercent={widget.params.regularMarketChangePercent}
-            regularMarketPreviousClose={widget.params.regularMarketPreviousClose}
+            regularMarketChangePercent={
+              widget.params.regularMarketChangePercent
+            }
+            regularMarketPreviousClose={
+              widget.params.regularMarketPreviousClose
+            }
             regularMarketOpen={widget.params.regularMarketOpen}
             regularMarketDayHigh={widget.params.regularMarketDayHigh}
             regularMarketDayLow={widget.params.regularMarketDayLow}
