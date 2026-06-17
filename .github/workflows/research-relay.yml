@@ -26,6 +26,10 @@ name: research-relay
         required: false
         default: llama3.2:3b
         type: string
+      provider_key:
+        description: API key for the selected LLM provider (stored in browser localStorage)
+        required: false
+        type: string
       sources:
         description: Search sources
         required: false
@@ -114,6 +118,7 @@ jobs:
           mode = get_str("mode", "balanced")
           provider = get_str("provider", "ollama")
           model = get_str("model", "llama3.2:3b")
+          provider_key = get_str("provider_key")
           sources = get_str("sources", "web")
           callback_url = get_str("callback_url")
           system_instructions = get_str("system_instructions")
@@ -127,6 +132,7 @@ jobs:
                   ("mode", mode),
                   ("provider", provider),
                   ("model", model),
+                  ("provider_key", provider_key),
                   ("sources", sources),
                   ("callback_url", callback_url),
                   ("system_instructions", system_instructions),
@@ -167,7 +173,7 @@ jobs:
           QUERY: ${{ steps.request.outputs.query }}
           MODE: ${{ steps.request.outputs.mode }}
           PROVIDER: ${{ steps.request.outputs.provider }}
-          PROVIDER_KEY: ${{ secrets.PROVIDER_KEY }}
+          PROVIDER_KEY: ${{ steps.request.outputs.provider_key || secrets.PROVIDER_KEY }}
           MODEL: ${{ steps.request.outputs.model }}
           SOURCES: ${{ steps.request.outputs.sources }}
           CALLBACK_URL: ${{ steps.request.outputs.callback_url }}

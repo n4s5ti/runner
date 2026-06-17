@@ -1,7 +1,7 @@
 // Replacement for Vane's useChat.tsx.
 // Swaps SSE + SQLite for edge proxy dispatch + IndexedDB + localStorage.
 
-import { dispatchResearch, waitForRun, getArtifacts, downloadResult } from '../proxy-client.js';
+import { dispatchResearch, waitForRun, getArtifacts, downloadResult, setProxyUrl } from '../proxy-client.js';
 import {
   saveChat, getChat, listChats, deleteChat,
   saveMessage, getMessages, updateMessageStatus,
@@ -12,13 +12,31 @@ function nowISO() { return new Date().toISOString(); }
 
 const DEFAULTS = {
   mode: 'balanced',
-  provider: 'ollama',
-  model: 'llama3.2:3b',
+  activeProvider: 'ollama',
+  providers: {
+    ollama: { apiKey: '', model: 'llama3.2:3b' },
+    openai: { apiKey: '', model: 'gpt-4o-mini' },
+    anthropic: { apiKey: '', model: 'claude-3-haiku-20240307' },
+    groq: { apiKey: '', model: 'llama-3.1-8b-instant' },
+  },
   sources: ['web'],
 };
 
 function loadCfg() {
-  try { return { ...DEFAULTS, ...JSON.parse(localStorage.getItem('vane_cfg') || '{}') }; }
+  try {
+    const saved = JSON.parse(localStorage.getItem('vane_cfg') || '{}');
+    // Migrate old flat config to new nested shape
+    if (saved.provider && !saved.providers) {
+      saved.activeProvider = saved.provider;
+      saved.providers = { ...DEFAULTS.providers };
+      if (saved.providers[saved.provider]) {
+        saved.providers[saved.provider].model = saved.model || saved.providers[saved.provider].model;
+}
+      delete saved.provider;
+      delete saved.model;
+}
+    return { ...DEFAULTS, providers: { ...DEFAULTS.providers, ...(saved.providers || {}) }, ...saved };
+}
   catch { return { ...DEFAULTS }; }
 }
 function saveCfg(cfg) {
@@ -84,7 +102,10 @@ export function ChatProvider({ children, chatId: initChatId }) {
 
     try {
       const { run_id } = await dispatchResearch({
-        query, mode: config.mode, provider: config.provider, model: config.model,
+        query,
+        mode: config.mode,
+        provider: config.activeProvider || 'ollama',
+        model: config.providers?.[config.activeProvider]?.model || 'llama3.2:3b',
       });
       const conclusion = await waitForRun(run_id, 3000);
       if (conclusion === 'failure') throw new Error('Workflow run failed');
@@ -128,3 +149,5 @@ export function ChatProvider({ children, chatId: initChatId }) {
 export function useChat() {
   return window.React.useContext(ChatCtx);
 }
+
+export { setProxyUrl };

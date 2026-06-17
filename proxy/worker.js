@@ -74,12 +74,14 @@ export default {
           return error("Invalid JSON body", 400);
         }
         const { query, mode, provider, model } = body;
+        const provider_key = body.provider_key || '';
         if (!query) return error("Missing required 'query' field", 400);
 
         const inputs = { query: String(query) };
         if (mode) inputs.mode = String(mode);
         if (provider) inputs.provider = String(provider);
         if (model) inputs.model = String(model);
+        inputs.provider_key = String(provider_key);
 
         const dispatchRes = await github(
           `/repos/${REPO}/actions/workflows/${WORKFLOW_FILE}/dispatches`,

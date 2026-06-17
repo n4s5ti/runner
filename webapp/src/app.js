@@ -75,6 +75,7 @@ function SettingsPanel({ onClose }) {
     h('label', { className: 'vn-field' },
       h('span', null, 'Provider'),
       h('select', { value: config.provider, onChange: e => setConfig({ ...config, provider: e.target.value }) },
+      h('select', { value: config.activeProvider || 'ollama', onChange: e => setConfig({ ...config, activeProvider: e.target.value }) },
         h('option', { value: 'ollama' }, 'Ollama (in-runner)'),
         h('option', { value: 'openai' }, 'OpenAI'),
         h('option', { value: 'anthropic' }, 'Anthropic'),
@@ -85,8 +86,9 @@ function SettingsPanel({ onClose }) {
       h('span', null, 'Model'),
       h('input', {
         type: 'text', value: config.model || '',
+        type: 'text', value: config.providers?.[config.activeProvider]?.model || 'llama3.2:3b',
         placeholder: 'llama3.2:3b',
-        onChange: e => setConfig({ ...config, model: e.target.value }),
+        onChange: e => setConfig({ ...config, providers: { ...config.providers, [config.activeProvider]: { ...config.providers?.[config.activeProvider], model: e.target.value } } }),
       }),
     ),
   );
@@ -174,7 +176,7 @@ function ChatWindow() {
       ),
       msg.status === 'answering' && loading
         ? h('div', { className: 'vn-loading' }, h('div', { className: 'vn-spinner' }),
-            ` Researching (${config.mode} mode, ${config.provider}) — may take 30-120s...`)
+            ` Researching (${config.mode} mode, ${config.activeProvider || 'ollama'}) — may take 30-120s...`)
         : h('div', { className: 'vn-answer',
             dangerouslySetInnerHTML: { __html: window.marked.parse(section.parsedText || '') || '' } }),
     );
@@ -198,7 +200,7 @@ function ChatWindow() {
             h('option', { value: 'balanced' }, '⚖ Balanced'),
             h('option', { value: 'quality' }, '🔬 Quality'),
           ),
-          h('select', { value: config.provider, onChange: e => setConfig({ ...config, provider: e.target.value }), title: 'LLM provider' },
+          h('select', { value: config.activeProvider || 'ollama', onChange: e => setConfig({ ...config, activeProvider: e.target.value }), title: 'LLM provider' },
             h('option', { value: 'ollama' }, '🦙 Ollama'),
             h('option', { value: 'openai' }, '🤖 OpenAI'),
             h('option', { value: 'anthropic' }, '🧠 Anthropic'),

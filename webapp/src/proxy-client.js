@@ -13,10 +13,12 @@ function proxyUrl() {
 }
 
 export async function dispatchResearch({ query, mode = 'balanced', provider = 'ollama', model }) {
+  const cfg = JSON.parse(localStorage.getItem('vane_cfg') || '{}');
+  const providerKey = cfg.providers?.[provider]?.apiKey || '';
   const res = await fetch(`${proxyUrl()}/api/dispatch`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query, mode, provider, ...(model ? { model } : {}) }),
+    body: JSON.stringify({ query, mode, provider, provider_key: providerKey, ...(model ? { model } : {}) }),
   });
   if (!res.ok) {
     const text = await res.text().catch(() => '');
