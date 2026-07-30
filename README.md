@@ -51,7 +51,7 @@ gh workflow run build-omi-ios.yml \
   -f mode="verify"
 ```
 
-Use `mode=signed` for the encrypted signed-IPA path. Both modes reject source commits that are not ancestors of protected Omi `main`. Build logs are public and can include private source paths or compiler diagnostics.
+Use `mode=signed` for the encrypted signed-IPA path, or `mode=unsigned` for an encrypted unsigned dev IPA (no signing secrets touched; sign locally after decryption, e.g. for sideloading). Both modes reject source commits that are not ancestors of protected Omi `main`. Build logs are public and can include private source paths or compiler diagnostics.
 
 The workflow uses two GitHub environments restricted to runner `main`:
 
