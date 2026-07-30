@@ -152,7 +152,7 @@ jobs:
           cp setup/prebuilt/GoogleService-Info.plist ios/Runner/
           bash scripts/generate_ios_custom_config.sh ios/Config/Dev/GoogleService-Info.plist ios/Flutter
           cat > .dev.env <<'EOF'
-          API_BASE_URL=
+          API_BASE_URL=https://api.omiapi.com/
           USE_WEB_AUTH=true
           USE_AUTH_CUSTOM_TOKEN=true
           STAGING_API_URL=
@@ -312,7 +312,7 @@ jobs:
           cp setup/prebuilt/GoogleService-Info.plist ios/Runner/
           bash scripts/generate_ios_custom_config.sh ios/Config/Dev/GoogleService-Info.plist ios/Flutter
           cat > .dev.env <<'EOF'
-          API_BASE_URL=
+          API_BASE_URL=https://api.omiapi.com/
           USE_WEB_AUTH=true
           USE_AUTH_CUSTOM_TOKEN=true
           STAGING_API_URL=
@@ -492,7 +492,7 @@ jobs:
           cp setup/prebuilt/GoogleService-Info.plist ios/Runner/
           bash scripts/generate_ios_custom_config.sh ios/Config/Dev/GoogleService-Info.plist ios/Flutter
           cat > .dev.env <<'EOF'
-          API_BASE_URL=
+          API_BASE_URL=https://api.omiapi.com/
           USE_WEB_AUTH=true
           USE_AUTH_CUSTOM_TOKEN=true
           STAGING_API_URL=
