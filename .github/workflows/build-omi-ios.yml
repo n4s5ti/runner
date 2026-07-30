@@ -491,6 +491,7 @@ jobs:
           cp setup/prebuilt/GoogleService-Info.plist ios/Config/Prod/
           cp setup/prebuilt/GoogleService-Info.plist ios/Runner/
           bash scripts/generate_ios_custom_config.sh ios/Config/Dev/GoogleService-Info.plist ios/Flutter
+          printf '%s\n' 'APP_BUNDLE_IDENTIFIER=com.friend-app-with-wearable.ios12.development' >> ios/Flutter/Custom.xcconfig
           cat > .dev.env <<'EOF'
           API_BASE_URL=https://api.omiapi.com/
           USE_WEB_AUTH=true
@@ -533,15 +534,24 @@ jobs:
           OMI_SOURCE_SHA: ${{ needs.validate-source-sha.outputs.source_sha }}
         run: |
           set -euo pipefail
+          expected_bundle_id='com.friend-app-with-wearable.ios12.development'
           app_dir="$GITHUB_WORKSPACE/app/build/ios/iphoneos/Runner.app"
+          info_plist="$app_dir/Info.plist"
+          firebase_plist="$app_dir/GoogleService-Info.plist"
           test -d "$app_dir"
+          test -f "$info_plist"
+          test -f "$firebase_plist"
+          app_bundle_id="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$info_plist")"
+          firebase_bundle_id="$(/usr/libexec/PlistBuddy -c 'Print :BUNDLE_ID' "$firebase_plist")"
+          test "$app_bundle_id" = "$expected_bundle_id"
+          test "$firebase_bundle_id" = "$expected_bundle_id"
           staging="$RUNNER_TEMP/ios-dev-ipa"
           mkdir -p "$staging/Payload"
           cp -R "$app_dir" "$staging/Payload/Runner.app"
           (cd "$staging" && zip -qry omi-dev.ipa Payload)
           rm -rf "$staging/Payload"
           ipa_sha256="$(shasum -a 256 "$staging/omi-dev.ipa" | awk '{print $1}')"
-          printf 'source_sha=%s\nmode=unsigned\nsha256=%s\n' "$OMI_SOURCE_SHA" "$ipa_sha256" > "$staging/receipt.txt"
+          printf 'source_sha=%s\nmode=unsigned\nbundle_id=%s\nsha256=%s\n' "$OMI_SOURCE_SHA" "$app_bundle_id" "$ipa_sha256" > "$staging/receipt.txt"
 
       - name: Encrypt unsigned IPA artifact and publish-safe summary
         env:

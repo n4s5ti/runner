@@ -276,6 +276,93 @@ class BuildOmiIosWorkflowTripwireTests(unittest.TestCase):
         for forbidden in (".ipa\n", "receipt.txt", ".mobileprovision", ".tar.gz\n"):
             self.assertNotIn(forbidden, upload)
 
+    def test_unsigned_job_appends_the_exact_dev_bundle_id_to_custom_xcconfig(
+        self,
+    ) -> None:
+        prepare_inputs = self.unsigned_job.split(
+            "      - name: Prepare Flutter dev build inputs\n", 1
+        )[1].split("      - name: Install CocoaPods dependencies\n", 1)[0]
+        self.assertIn(
+            "printf '%s\\n' 'APP_BUNDLE_IDENTIFIER=com.friend-app-with-wearable.ios12.development' >> ios/Flutter/Custom.xcconfig",
+            prepare_inputs,
+        )
+
+    def test_unsigned_job_reads_both_built_bundle_ids_with_plistbuddy(self) -> None:
+        packaging = self.unsigned_job.split(
+            "      - name: Package unsigned dev IPA and receipt\n", 1
+        )[1].split(
+            "      - name: Encrypt unsigned IPA artifact and publish-safe summary\n",
+            1,
+        )[0]
+        self.assertIn(
+            'app_dir="$GITHUB_WORKSPACE/app/build/ios/iphoneos/Runner.app"',
+            packaging,
+        )
+        self.assertIn('info_plist="$app_dir/Info.plist"', packaging)
+        self.assertIn('firebase_plist="$app_dir/GoogleService-Info.plist"', packaging)
+        self.assertIn(
+            """app_bundle_id="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$info_plist")""",
+            packaging,
+        )
+        self.assertIn(
+            """firebase_bundle_id="$(/usr/libexec/PlistBuddy -c 'Print :BUNDLE_ID' "$firebase_plist")""",
+            packaging,
+        )
+
+    def test_unsigned_job_fails_when_a_built_bundle_id_is_not_the_dev_id(
+        self,
+    ) -> None:
+        packaging = self.unsigned_job.split(
+            "      - name: Package unsigned dev IPA and receipt\n", 1
+        )[1].split(
+            "      - name: Encrypt unsigned IPA artifact and publish-safe summary\n",
+            1,
+        )[0]
+        self.assertIn(
+            "expected_bundle_id='com.friend-app-with-wearable.ios12.development'",
+            packaging,
+        )
+        self.assertIn('test "$app_bundle_id" = "$expected_bundle_id"', packaging)
+        self.assertIn(
+            'test "$firebase_bundle_id" = "$expected_bundle_id"', packaging
+        )
+
+    def test_unsigned_receipt_includes_the_verified_bundle_id(self) -> None:
+        packaging = self.unsigned_job.split(
+            "      - name: Package unsigned dev IPA and receipt\n", 1
+        )[1].split(
+            "      - name: Encrypt unsigned IPA artifact and publish-safe summary\n",
+            1,
+        )[0]
+        self.assertIn(
+            "printf 'source_sha=%s\\nmode=unsigned\\nbundle_id=%s\\nsha256=%s\\n' \"$OMI_SOURCE_SHA\" \"$app_bundle_id\" \"$ipa_sha256\" > \"$staging/receipt.txt\"",
+            packaging,
+        )
+
+    def test_unsigned_job_validates_built_bundle_ids_before_packaging(
+        self,
+    ) -> None:
+        post_build = self.unsigned_job.split(
+            "      - name: Build unsigned iOS dev app\n", 1
+        )[1]
+        packaging = post_build.split(
+            "      - name: Package unsigned dev IPA and receipt\n", 1
+        )[1].split(
+            "      - name: Encrypt unsigned IPA artifact and publish-safe summary\n",
+            1,
+        )[0]
+        app_bundle_read = (
+            """app_bundle_id="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$info_plist")"""
+        )
+        firebase_bundle_read = (
+            """firebase_bundle_id="$(/usr/libexec/PlistBuddy -c 'Print :BUNDLE_ID' "$firebase_plist")"""
+        )
+        packaging_start = 'cp -R "$app_dir" "$staging/Payload/Runner.app"'
+        self.assertLess(packaging.index(app_bundle_read), packaging.index(packaging_start))
+        self.assertLess(
+            packaging.index(firebase_bundle_read), packaging.index(packaging_start)
+        )
+
     def test_frozen_toolchain_and_jags_parity_are_asserted_in_both_macos_jobs(
         self,
     ) -> None:
