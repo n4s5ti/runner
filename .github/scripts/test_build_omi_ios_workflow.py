@@ -37,7 +37,10 @@ class BuildOmiIosWorkflowTripwireTests(unittest.TestCase):
         cls.verify_job = cls.workflow.split("  verify-ios:\n", 1)[1].split(
             "  signed-ios:\n", 1
         )[0]
-        cls.signed_job = cls.workflow.split("  signed-ios:\n", 1)[1]
+        cls.signed_job = cls.workflow.split("  signed-ios:\n", 1)[1].split(
+            "  unsigned-ipa:\n", 1
+        )[0]
+        cls.unsigned_job = cls.workflow.split("  unsigned-ipa:\n", 1)[1]
 
     def test_is_manual_only_with_immutable_source_input(self) -> None:
         self.assertIn("on:\n  workflow_dispatch:\n", self.workflow)
@@ -50,7 +53,7 @@ class BuildOmiIosWorkflowTripwireTests(unittest.TestCase):
         )
         self.assertRegex(
             self.workflow,
-            r"mode:\n        description: Build mode\n        required: true\n        default: verify\n        type: choice\n        options:\n          - verify\n          - signed",
+            r"mode:\n        description: Build mode\n        required: true\n        default: verify\n        type: choice\n        options:\n          - verify\n          - unsigned\n          - signed",
         )
         self.assertIn(
             "if: github.ref == 'refs/heads/main' && inputs.mode == 'verify'",
@@ -59,6 +62,10 @@ class BuildOmiIosWorkflowTripwireTests(unittest.TestCase):
         self.assertIn(
             "if: github.ref == 'refs/heads/main' && inputs.mode == 'signed'",
             self.signed_job,
+        )
+        self.assertIn(
+            "if: github.ref == 'refs/heads/main' && inputs.mode == 'unsigned'",
+            self.unsigned_job,
         )
 
     def test_validation_precedes_macos_jobs_and_enforces_the_workflow_contract(
@@ -78,17 +85,17 @@ class BuildOmiIosWorkflowTripwireTests(unittest.TestCase):
         self.assertIn(
             "run: python3 .github/scripts/test_build_omi_ios_workflow.py", validation
         )
-        for job in (self.verify_job, self.signed_job):
+        for job in (self.verify_job, self.signed_job, self.unsigned_job):
             self.assertIn("needs: validate-source-sha", job)
             self.assertIn("runs-on: macos-15", job)
 
     def test_private_source_is_main_admitted_and_key_is_destroyed_before_execution(
         self,
     ) -> None:
-        self.assertEqual(self.workflow.count("secrets.OMI_SOURCE_DEPLOY_KEY"), 2)
+        self.assertEqual(self.workflow.count("secrets.OMI_SOURCE_DEPLOY_KEY"), 3)
         self.assertNotIn("ssh-key:", self.workflow)
         self.assertNotIn("repository: n4s5ti/0mi", self.workflow)
-        for job in (self.verify_job, self.signed_job):
+        for job in (self.verify_job, self.signed_job, self.unsigned_job):
             admission = job.split(
                 "      - name: Admit and checkout protected Omi main source\n",
                 1,
@@ -144,7 +151,7 @@ class BuildOmiIosWorkflowTripwireTests(unittest.TestCase):
     def test_both_modes_require_protected_main_ancestry_before_source_execution(
         self,
     ) -> None:
-        for job in (self.verify_job, self.signed_job):
+        for job in (self.verify_job, self.signed_job, self.unsigned_job):
             admission = job.split(
                 "      - name: Admit and checkout protected Omi main source\n",
                 1,
@@ -170,7 +177,7 @@ class BuildOmiIosWorkflowTripwireTests(unittest.TestCase):
         }
         uses = re.findall(r"(?m)^        uses: ([^@\s]+)@([^\s#]+)", self.workflow)
         self.assertEqual(dict(uses), expected_actions)
-        self.assertEqual(len(uses), 6)
+        self.assertEqual(len(uses), 9)
         for action, revision in uses:
             self.assertRegex(revision, r"^[0-9a-f]{40}$")
             self.assertEqual(revision, expected_actions[action])
@@ -182,6 +189,8 @@ class BuildOmiIosWorkflowTripwireTests(unittest.TestCase):
         for secret in SIGNING_SECRETS:
             self.assertNotIn(secret, unsigned_path)
             self.assertIn(f"{secret}: ${{{{ secrets.{secret} }}}}", self.signed_job)
+        for signing_only_secret in SIGNING_SECRETS[:3]:
+            self.assertNotIn(signing_only_secret, self.unsigned_job)
         self.assertIn("- name: Validate protected signing secrets", self.signed_job)
         self.assertIn("- name: Build, sign, and verify dev IPA", self.signed_job)
         self.assertIn(
@@ -233,10 +242,44 @@ class BuildOmiIosWorkflowTripwireTests(unittest.TestCase):
             self.assertNotIn(forbidden, upload)
         self.assertNotIn("actions/upload-artifact", self.verify_job)
 
+    def test_unsigned_job_builds_without_signing_and_publishes_only_ciphertext(
+        self,
+    ) -> None:
+        self.assertIn("environment: omi-ios-source-read", self.unsigned_job)
+        self.assertIn(
+            "flutter build ios --release --flavor dev --no-codesign",
+            self.unsigned_job,
+        )
+        self.assertIn(
+            "- name: Package unsigned dev IPA and receipt", self.unsigned_job
+        )
+        self.assertIn(
+            'tar -C "$RUNNER_TEMP/ios-dev-ipa" -czf "$archive" omi-dev.ipa receipt.txt',
+            self.unsigned_job,
+        )
+        self.assertIn(
+            "openssl cms -encrypt -binary -aes-256-cbc -outform DER",
+            self.unsigned_job,
+        )
+        self.assertIn(
+            "IPA_ARTIFACT_ENCRYPTION_CERT_PEM: ${{ secrets.IPA_ARTIFACT_ENCRYPTION_CERT_PEM }}",
+            self.unsigned_job,
+        )
+        self.assertIn('rm -rf "$RUNNER_TEMP/ios-dev-ipa"', self.unsigned_job)
+        upload = self.unsigned_job.split(
+            "      - name: Upload encrypted unsigned IPA artifact and public summary\n",
+            1,
+        )[1]
+        self.assertIn("uses: actions/upload-artifact@" + UPLOAD_SHA, upload)
+        self.assertIn("omi-ios-artifact.tar.gz.cms", upload)
+        self.assertIn("public-summary.txt", upload)
+        for forbidden in (".ipa\n", "receipt.txt", ".mobileprovision", ".tar.gz\n"):
+            self.assertNotIn(forbidden, upload)
+
     def test_frozen_toolchain_and_jags_parity_are_asserted_in_both_macos_jobs(
         self,
     ) -> None:
-        for job in (self.verify_job, self.signed_job):
+        for job in (self.verify_job, self.signed_job, self.unsigned_job):
             for required in (
                 "DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer",
                 "expected=$'Xcode 16.4\\nBuild version 16F6'",
