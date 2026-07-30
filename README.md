@@ -1,11 +1,13 @@
 # runner
 
-Public, stateless GitHub Actions research relay with two workflows:
+Public, stateless GitHub Actions runner for research and iOS workloads:
 
 - `research-ollama`: runs Ollama on a GitHub-hosted runner and posts a JSON result.
 - `research-searxng-ollama`: runs an ephemeral SearXNG service container plus Ollama and posts a JSON result.
+- `build-multica-ios`: builds the public Multica iOS source.
+- `build-omi-ios`: manually verifies or signs an immutable, protected-main commit from the private Omi repository.
 
-The repository is safe to fork: it contains no vault data, no persisted cache, no workflow artifacts, and no required secrets for Ollama or SearXNG. The destination endpoint is supplied per run and must be HTTPS.
+The research and Multica workflows contain no vault data or persisted cache and require no repository secrets. The Omi workflow intentionally requires credentials that forks do not inherit; a fork cannot run it without configuring its own source and signing trust.
 
 ## Security model
 
@@ -36,6 +38,27 @@ gh workflow run research-searxng-ollama.yml \
   -f temperature="0.2" \
   -f top_n="5"
 ```
+
+## Omi iOS builds
+
+Dispatch the public workflow only from its `main` branch and identify Omi source with a full 40-hex commit SHA:
+
+```bash
+gh workflow run build-omi-ios.yml \
+  --repo n4s5ti/runner \
+  --ref main \
+  -f source_sha="<protected Omi main commit SHA>" \
+  -f mode="verify"
+```
+
+Use `mode=signed` for the encrypted signed-IPA path. Both modes reject source commits that are not ancestors of protected Omi `main`. Build logs are public and can include private source paths or compiler diagnostics.
+
+The workflow uses two GitHub environments restricted to runner `main`:
+
+- `omi-ios-source-read`: `OMI_SOURCE_DEPLOY_KEY`, a read-only deploy key for the private Omi repository.
+- `omi-ios-signing`: its own copy of `OMI_SOURCE_DEPLOY_KEY`, plus `IOS_SIGNING_CERTIFICATE_BASE64`, `IOS_SIGNING_CERTIFICATE_PASSWORD`, `IOS_PROVISIONING_PROFILES_BASE64`, and the public recipient certificate `IPA_ARTIFACT_ENCRYPTION_CERT_PEM`.
+
+The signed workflow uploads only CMS ciphertext and a checksum summary. Keep the matching artifact decryption private key off GitHub; decrypt with `.github/scripts/decrypt-omi-ios-artifact.sh`. Forks must create equivalent environments, branch policies, deploy keys, signing material, and an artifact recipient certificate under their own ownership.
 
 Watch runs with:
 
