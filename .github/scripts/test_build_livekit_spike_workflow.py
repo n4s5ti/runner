@@ -176,6 +176,11 @@ class BuildLiveKitSpikeWorkflowTripwireTests(unittest.TestCase):
         )
         self.assertIn("-destination 'generic/platform=iOS'", device_build)
         self.assertIn("-derivedDataPath \"$RUNNER_TEMP/livekit-spike-dd\"", device_build)
+        # Measurement fidelity: latency distributions must come from a Release
+        # binary, so a Debug device build is a contract violation, not a fallback.
+        self.assertIn("-configuration Release", device_build)
+        self.assertIn("Release-iphoneos/LiveKitSpike.app", self.build_job)
+        self.assertNotIn("Debug-iphoneos", self.workflow)
         self.assertIn("CODE_SIGNING_ALLOWED=NO", simulator_build)
         self.assertIn("CODE_SIGNING_ALLOWED=NO", device_build)
         self.assertIn("CODE_SIGNING_REQUIRED=NO", device_build)
