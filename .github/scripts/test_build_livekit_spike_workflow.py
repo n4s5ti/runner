@@ -5,10 +5,12 @@ Mirrors test_build_omi_ios_workflow.py: standard library only, so the public
 runner's trust boundary is protected without needing a YAML parser here.
 
 This lane is narrower than the Omi lane on purpose. It holds no signing
-secrets and emits no signed artifact, so the invariants worth defending are
+secrets and emits an unsigned simulator and device build; the device binary
+artifact is encrypted before upload. The invariants worth defending are
 (a) manual dispatch of an immutable, ancestry-checked source commit,
 (b) the read-only deploy key is destroyed before any admitted source runs, and
-(c) the build stays unsigned and simulator-only.
+(c) the build stays unsigned for both simulator and device, with encrypted
+binary artifacts only.
 """
 
 from __future__ import annotations
@@ -152,26 +154,86 @@ class BuildLiveKitSpikeWorkflowTripwireTests(unittest.TestCase):
                 msg=f"third-party action is not pinned to a full SHA: {action}",
             )
 
-    def test_build_is_unsigned_simulator_only_and_holds_no_signing_secrets(
+    def test_build_is_unsigned_for_simulator_and_device_without_signing_secrets(
         self,
     ) -> None:
-        self.assertIn("xcodebuild build \\", self.build_job)
-        self.assertIn("-project LiveKitSpike.xcodeproj", self.build_job)
-        self.assertIn("-scheme LiveKitSpike", self.build_job)
         self.assertIn(
-            "-destination 'generic/platform=iOS Simulator'",
+            "name: Build LiveKit direct-path spike (simulator + unsigned device)",
             self.build_job,
         )
-        self.assertIn("CODE_SIGNING_ALLOWED=NO", self.build_job)
+        simulator_build = self.build_job.split(
+            "      - name: Build the spike for the iOS Simulator\n", 1
+        )[1].split("      - name: Build the spike for iOS device (unsigned)\n", 1)[0]
+        device_build = self.build_job.split(
+            "      - name: Build the spike for iOS device (unsigned)\n", 1
+        )[1].split("      - name: Package unsigned device IPA and receipt\n", 1)[0]
+        self.assertIn("xcodebuild build \\", simulator_build)
+        self.assertIn("-project LiveKitSpike.xcodeproj", simulator_build)
+        self.assertIn("-scheme LiveKitSpike", simulator_build)
+        self.assertIn(
+            "-destination 'generic/platform=iOS Simulator'",
+            simulator_build,
+        )
+        self.assertIn("-destination 'generic/platform=iOS'", device_build)
+        self.assertIn("-derivedDataPath \"$RUNNER_TEMP/livekit-spike-dd\"", device_build)
+        self.assertIn("CODE_SIGNING_ALLOWED=NO", simulator_build)
+        self.assertIn("CODE_SIGNING_ALLOWED=NO", device_build)
+        self.assertIn("CODE_SIGNING_REQUIRED=NO", device_build)
         for forbidden in (
             "IOS_SIGNING_CERTIFICATE_BASE64",
             "IOS_SIGNING_CERTIFICATE_PASSWORD",
             "IOS_PROVISIONING_PROFILES_BASE64",
-            "IPA_ARTIFACT_ENCRYPTION_CERT_PEM",
             "-allowProvisioningUpdates",
             "xcodebuild archive",
         ):
             self.assertNotIn(forbidden, self.workflow)
+
+    def test_device_ipa_is_encrypted_before_upload(self) -> None:
+        self.assertEqual(
+            self.workflow.count("secrets.IPA_ARTIFACT_ENCRYPTION_CERT_PEM"), 1
+        )
+        self.assertIn(
+            "openssl cms -encrypt -binary -aes-256-cbc -outform DER", self.build_job
+        )
+        encryption = self.build_job.split(
+            "      - name: Encrypt device IPA artifact and publish-safe summary\n", 1
+        )[1].split("      - name: Upload encrypted device IPA artifact\n", 1)[0]
+        self.assertIn('rm -f "$archive" "$recipient_cert"', encryption)
+        self.assertIn('rm -rf "$RUNNER_TEMP/livekit-spike-dev-ipa"', encryption)
+
+        device_upload = self.build_job.split(
+            "      - name: Upload encrypted device IPA artifact\n", 1
+        )[1].split("      - name: Upload xcodebuild log\n", 1)[0]
+        path_block = device_upload.split("          path: |\n", 1)[1].split(
+            "\n          if-no-files-found:", 1
+        )[0]
+        self.assertEqual(
+            path_block.splitlines(),
+            [
+                "            ${{ runner.temp }}/livekit-spike-artifact/livekit-spike-artifact.tar.gz.cms",
+                "            ${{ runner.temp }}/livekit-spike-artifact/public-summary.txt",
+            ],
+        )
+
+        upload_steps = re.findall(
+            r"(?ms)^      - name: .*?\n        uses: actions/upload-artifact@.*?(?=^      - name:|\Z)",
+            self.build_job,
+        )
+        self.assertGreaterEqual(len(upload_steps), 2)
+        for upload_step in upload_steps:
+            upload_path = upload_step.split("          path:", 1)[1].split(
+                "\n          if-no-files-found:", 1
+            )[0]
+            self.assertNotIn(".ipa", upload_path)
+            self.assertNotIn(".app", upload_path)
+            for entry in upload_path.split():
+                if entry == "|":
+                    continue
+                for forbidden_suffix in (".tar.gz", ".tgz", ".zip"):
+                    self.assertFalse(
+                        entry.endswith(forbidden_suffix),
+                        f"plaintext archive in upload path: {entry}",
+                    )
 
     def test_build_log_is_always_uploaded(self) -> None:
         upload = self.build_job.split("      - name: Upload xcodebuild log\n", 1)[1]
@@ -180,7 +242,8 @@ class BuildLiveKitSpikeWorkflowTripwireTests(unittest.TestCase):
             upload,
         )
         self.assertIn(
-            "path: ${{ runner.temp }}/livekit-spike-build/xcodebuild.log", upload
+            "path: |\n            ${{ runner.temp }}/livekit-spike-build/xcodebuild.log\n            ${{ runner.temp }}/livekit-spike-build/xcodebuild-device.log",
+            upload,
         )
         self.assertIn("if-no-files-found: error", upload)
         # A failing compile is the point of this lane, so the log must survive it.
