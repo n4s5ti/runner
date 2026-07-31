@@ -6,6 +6,7 @@ Public, stateless GitHub Actions runner for research and iOS workloads:
 - `research-searxng-ollama`: runs an ephemeral SearXNG service container plus Ollama and posts a JSON result.
 - `build-multica-ios`: builds the public Multica iOS source.
 - `build-omi-ios`: manually verifies or signs an immutable, protected-main commit from the private Omi repository.
+- `build-livekit-spike`: compiles the OBS-1712 LiveKit direct-path spike from a protected branch of the private omp-wakeword repository. **Staged, not armed** — see below.
 
 The research and Multica workflows contain no vault data or persisted cache and require no repository secrets. The Omi workflow intentionally requires credentials that forks do not inherit; a fork cannot run it without configuring its own source and signing trust.
 
@@ -65,6 +66,21 @@ Watch runs with:
 ```bash
 gh run watch --repo n4s5ti/runner
 ```
+
+## LiveKit spike builds
+
+`build-livekit-spike` compiles `spike/livekit-direct/` from the private `n4s5ti/omp-wakeword` repository (`xcodegen generate` + `xcodebuild build ... CODE_SIGNING_ALLOWED=NO` on `macos-15`/Xcode 16.4) and uploads the `xcodebuild` log. It holds no signing secrets and produces no IPA. Unlike the Omi lane it admits commits that are ancestors of the protected `feature/livekit-direct-spike` branch, not of `main`, because a spike commit is deliberately not on the source repo's `main`.
+
+The lane requires a GitHub environment `omp-wakeword-source-read` restricted to runner `main`, holding `OMP_WAKEWORD_DEPLOY_KEY`, a read-only deploy key for the private source repository. That environment, secret, and deploy key are **not** created by this repository; until an owner creates them the workflow cannot run. The four approval steps, with copy-paste commands and revocation, are in [`docs/livekit-spike-lane-approval.md`](docs/livekit-spike-lane-approval.md).
+
+```bash
+gh workflow run build-livekit-spike.yml \
+  --repo n4s5ti/runner \
+  --ref main \
+  -f source_sha="<omp-wakeword feature/livekit-direct-spike commit SHA>"
+```
+
+Build logs are public and can include private source paths or compiler diagnostics.
 
 ## `repository_dispatch` usage
 

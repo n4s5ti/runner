@@ -1,0 +1,144 @@
+# This workflow runs in a public repository. Compiler and dependency logs are public;
+# dispatch only omp-wakeword commits approved for that exposure. This lane compiles the
+# OBS-1712 LiveKit-direct spike (spike/livekit-direct) for the iOS Simulator with code
+# signing disabled. It produces no signed artifact and holds no signing secrets.
+name: Build LiveKit spike
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_sha:
+        description: Immutable 40-hex omp-wakeword source commit SHA
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  validate-source-sha:
+    name: Validate immutable omp-wakeword source SHA
+    runs-on: ubuntu-latest
+    outputs:
+      source_sha: ${{ steps.validate.outputs.source_sha }}
+    steps:
+      - name: Checkout public runner contract
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Enforce public LiveKit spike workflow trust contract
+        run: python3 .github/scripts/test_build_livekit_spike_workflow.py
+
+      - name: Accept only a full commit SHA
+        id: validate
+        env:
+          SOURCE_SHA: ${{ inputs.source_sha }}
+        run: |
+          set -euo pipefail
+          if ! [[ "$SOURCE_SHA" =~ ^[0-9A-Fa-f]{40}$ ]]; then
+            echo '::error::source_sha must be a full 40-hex commit SHA.'
+            exit 1
+          fi
+          printf 'source_sha=%s\n' "${SOURCE_SHA,,}" >> "$GITHUB_OUTPUT"
+
+  build-livekit-spike:
+    name: Build LiveKit direct-path spike for iOS Simulator
+    if: github.ref == 'refs/heads/main'
+    needs: validate-source-sha
+    runs-on: macos-15
+    environment: omp-wakeword-source-read
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
+    steps:
+      - name: Admit and checkout protected omp-wakeword spike source
+        env:
+          SOURCE_SHA: ${{ needs.validate-source-sha.outputs.source_sha }}
+          OMP_WAKEWORD_DEPLOY_KEY: ${{ secrets.OMP_WAKEWORD_DEPLOY_KEY }}
+        run: |
+          set -euo pipefail
+          umask 077
+          deploy_key="$(mktemp "$RUNNER_TEMP/omp-wakeword-source-key.XXXXXX")"
+          known_hosts="$(mktemp "$RUNNER_TEMP/omp-wakeword-known-hosts.XXXXXX")"
+          cleanup_source_key() {
+            rm -f "$deploy_key" "$known_hosts"
+          }
+          trap cleanup_source_key EXIT
+          printf '%s\n' "$OMP_WAKEWORD_DEPLOY_KEY" > "$deploy_key"
+          unset OMP_WAKEWORD_DEPLOY_KEY
+          ssh-keyscan -t ed25519 github.com > "$known_hosts" 2>/dev/null
+          actual_fingerprint="$(ssh-keygen -lf "$known_hosts" -E sha256 | awk 'NR == 1 { print $2 }')"
+          expected_fingerprint='SHA256:+DiY3wvvV6TuJJhbpZisF/zLDA0zPMSvHdkr4UvCOqU'
+          test "$actual_fingerprint" = "$expected_fingerprint"
+          export GIT_SSH_COMMAND="ssh -i '$deploy_key' -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile='$known_hosts'"
+          git init --quiet .
+          git remote add origin git@github.com:n4s5ti/omp-wakeword.git
+          git fetch --quiet --no-tags origin '+refs/heads/feature/livekit-direct-spike:refs/remotes/origin/feature/livekit-direct-spike'
+          git cat-file -e "${SOURCE_SHA}^{commit}"
+          git merge-base --is-ancestor "$SOURCE_SHA" refs/remotes/origin/feature/livekit-direct-spike
+          git remote remove origin
+          unset GIT_SSH_COMMAND
+          cleanup_source_key
+          trap - EXIT
+          test ! -e "$deploy_key"
+          test ! -e "$known_hosts"
+          git checkout --quiet --detach "$SOURCE_SHA"
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+
+      - name: Select and verify pinned Xcode
+        run: |
+          set -euo pipefail
+          test -x "$DEVELOPER_DIR/usr/bin/xcodebuild"
+          actual="$(xcodebuild -version)"
+          expected=$'Xcode 16.4\nBuild version 16F6'
+          if [ "$actual" != "$expected" ]; then
+            echo "::error::Expected ${expected//$'\n'/, }, found ${actual//$'\n'/, }"
+            exit 1
+          fi
+
+      - name: Require the spike project spec to exist in the admitted source
+        run: |
+          set -euo pipefail
+          spec='spike/livekit-direct/project.yml'
+          if [ ! -f "$spec" ] || ! git ls-files --error-unmatch "$spec" >/dev/null 2>&1; then
+            echo "::error::Missing checked-in xcodegen project spec: ${spec}"
+            exit 1
+          fi
+
+      - name: Install xcodegen
+        run: |
+          set -euo pipefail
+          brew install xcodegen
+          xcodegen --version
+
+      - name: Generate the Xcode project
+        working-directory: spike/livekit-direct
+        run: |
+          set -euo pipefail
+          xcodegen generate
+          test -d LiveKitSpike.xcodeproj
+
+      - name: Build the spike for the iOS Simulator
+        id: build
+        working-directory: spike/livekit-direct
+        run: |
+          set -euo pipefail
+          log_dir="$RUNNER_TEMP/livekit-spike-build"
+          mkdir -p "$log_dir"
+          log="$log_dir/xcodebuild.log"
+          status=0
+          set -o pipefail
+          xcodebuild build \
+            -project LiveKitSpike.xcodeproj \
+            -scheme LiveKitSpike \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO 2>&1 | tee "$log" || status=$?
+          printf 'exit_status=%s\n' "$status" >> "$GITHUB_OUTPUT"
+          exit "$status"
+
+      - name: Upload xcodebuild log
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: livekit-spike-xcodebuild-log-${{ needs.validate-source-sha.outputs.source_sha }}
+          path: ${{ runner.temp }}/livekit-spike-build/xcodebuild.log
+          if-no-files-found: error
+          retention-days: 14
