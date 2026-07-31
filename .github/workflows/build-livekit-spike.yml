@@ -135,7 +135,10 @@ jobs:
           exit "$status"
 
       - name: Upload xcodebuild log
-        if: always()
+        # A failing compile is the payload of this lane, so the log must survive it.
+        # Guarded on the build step actually having run: if an earlier step fails, no
+        # log exists and `if-no-files-found: error` would mask the real failure.
+        if: always() && steps.build.outcome != 'skipped'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: livekit-spike-xcodebuild-log-${{ needs.validate-source-sha.outputs.source_sha }}

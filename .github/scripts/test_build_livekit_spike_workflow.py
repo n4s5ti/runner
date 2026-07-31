@@ -175,7 +175,10 @@ class BuildLiveKitSpikeWorkflowTripwireTests(unittest.TestCase):
 
     def test_build_log_is_always_uploaded(self) -> None:
         upload = self.build_job.split("      - name: Upload xcodebuild log\n", 1)[1]
-        self.assertIn("if: always()", upload)
+        self.assertIn(
+            "if: always() && steps.build.outcome != 'skipped'",
+            upload,
+        )
         self.assertIn(
             "path: ${{ runner.temp }}/livekit-spike-build/xcodebuild.log", upload
         )
