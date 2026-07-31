@@ -226,6 +226,14 @@ class BuildLiveKitSpikeWorkflowTripwireTests(unittest.TestCase):
             )[0]
             self.assertNotIn(".ipa", upload_path)
             self.assertNotIn(".app", upload_path)
+            for entry in upload_path.split():
+                if entry == "|":
+                    continue
+                for forbidden_suffix in (".tar.gz", ".tgz", ".zip"):
+                    self.assertFalse(
+                        entry.endswith(forbidden_suffix),
+                        f"plaintext archive in upload path: {entry}",
+                    )
 
     def test_build_log_is_always_uploaded(self) -> None:
         upload = self.build_job.split("      - name: Upload xcodebuild log\n", 1)[1]

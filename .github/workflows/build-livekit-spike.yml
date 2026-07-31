@@ -189,6 +189,11 @@ jobs:
           archive="$RUNNER_TEMP/livekit-spike-artifact.tar.gz"
           ciphertext="$artifact_dir/livekit-spike-artifact.tar.gz.cms"
           summary="$artifact_dir/public-summary.txt"
+          cleanup_sensitive_artifacts() {
+            rm -f "$archive" "$recipient_cert"
+            rm -rf "$RUNNER_TEMP/livekit-spike-dev-ipa"
+          }
+          trap cleanup_sensitive_artifacts EXIT
           mkdir -p "$artifact_dir"
           printf '%s' "$IPA_ARTIFACT_ENCRYPTION_CERT_PEM" > "$recipient_cert"
           chmod 600 "$recipient_cert"
@@ -200,8 +205,10 @@ jobs:
           ciphertext_sha256="$(shasum -a 256 "$ciphertext" | awk '{print $1}')"
           printf 'source_sha=%s\nciphertext_sha256=%s\n' "$SOURCE_SHA" "$ciphertext_sha256" > "$summary"
           unset IPA_ARTIFACT_ENCRYPTION_CERT_PEM
-          rm -f "$archive" "$recipient_cert"
-          rm -rf "$RUNNER_TEMP/livekit-spike-dev-ipa"
+          cleanup_sensitive_artifacts
+          trap - EXIT
+          test ! -e "$archive"
+          test ! -e "$recipient_cert"
 
       - name: Upload encrypted device IPA artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
